@@ -26,10 +26,10 @@ To run a bandwidth test:
 To run a latency test: 
 	./pstream -l -f output_file 
 
-to graph bandwidth data:
+To graph bandwidth data:
 	./view results/i5-4570-bw-UA
 
-to graph latency data:
+To graph latency data:
     ./lview results/i5-4570-lat-p1 
 
 Example run script in run.sh.
