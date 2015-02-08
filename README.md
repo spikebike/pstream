@@ -34,10 +34,7 @@ To graph latency data:
 
 Example run script in run.sh.
 
-Test:
-![Image of Yaktocat](https://octodex.github.com/images/yaktocat.png)
-
-test2:
-![image of graph](https://raw.githubusercontent.com/spikebike/pstream/master/png/i5-4570-bw-Ua.png)
+Example bandwidth graph:
+![bandwidth graph](https://raw.githubusercontent.com/spikebike/pstream/master/png/i5-4570-bw-Ua.png)
 
 
