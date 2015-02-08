@@ -5,27 +5,31 @@ export time=0.4
 export shrink=95
 #size of L3 cache
 export csize=20480
-#max threads
-export maxt=32
+#max threads, typically number of cores = best.
+export maxt=16
 #max mem
-export maxm=128
+export maxm=256
 #CPU NAME
 export name=e5-2630v3
 
-./pstream -f results/$name-bw-U  -b -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -c $csize --shared -U
-./pstream -f results/$name-bw-Ua -b -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -c $csize --shared -U -a
+#2./pstream -f results/$name-bw-U  -b -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -c $csize --shared -U
+#./pstream -f results/$name-bw-Ua -b -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -c $csize --shared -U -a
+echo ./pstream -f results/$name-bw-UA -b -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -c $csize --shared -U -A
 ./pstream -f results/$name-bw-UA -b -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -c $csize --shared -U -A
 
+export maxt=32
 # TLB thrashing random over entire array
-./pstream -f results/$name-lat-p0 -l -U -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -U -p 0
+#./pstream -f results/$name-lat-p0 -l -U -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -U -p 0
 # TLB friendly, random across a sliding window of a page or so
-./pstream -f results/$name-lat-p1 -l -U -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -U -p 1
+#./pstream -f results/$name-lat-p1 -l -U -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -U -p 1
+#./pstream -f results/$name-lat-p1a -l -U -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -U -a -p 1
+#./pstream -f results/$name-lat-p1At -l -U -t 1 -T $maxt -m 16 -M $maxm -s $time -i $shrink -U -A -p 1
 
-for i in results/$name-bw*; do
-	./view $i;
-done
-for i in results/$name-lat*; do
-	./lview $i;
-done
-
+#for i in results/$name-bw*; do
+#	./view $i;
+#done
+#for i in results/$name-lat*; do
+#	./lview $i;
+#done
+#
 

@@ -7,8 +7,10 @@
 #LIBS = -lpthread
 
 # with GCC on most anything
-CC = gcc -std=gnu99
-OPT = -DUSEAFFINITY -DUSENUMA -O4 -pedantic -Wall -fargument-noalias-anything -fstrict-aliasing
+#CC = gcc -std=gnu99
+#OPT = -DUSEAFFINITY -DUSENUMA -O4 -pedantic -Wall -fargument-noalias-anything -fstrict-aliasing
+CC=icc -O3
+OPT = -DUSEAFFINITY -DUSENUMA 
 #add -march=amdfam10 for newer AMDs (bulldozer, piledriver)
 LIBS = -lpthread  -lnuma
 

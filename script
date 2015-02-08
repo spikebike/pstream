@@ -16,11 +16,14 @@ replot 'data' using 2:5 title "2-thread add" with lines lw 2
 #replot 'data' using 2:6 title "2-thread triad" with lines lw 2
 replot 'data' using 2:7 title "4-thread add" with lines lw 2
 #replot 'data' using 2:8 title "4-thread triad" with lines lw 2
-#replot 'data' using 2:9 title "8-thread add" with lines lw 2
+replot 'data' using 2:9 title "8-thread add" with lines lw 2
 #replot 'data' using 2:10 title "8-thread triad" with lines lw 2
-#replot 'data' using 2:11 title "16-thread add" with lines lw 2
-#replot 'data' using 2:13 title "32-thread add" with lines lw 2
+replot 'data' using 2:11 title "16-thread add" with lines lw 2
+#replot 'data' using 2:12 title "16-thread triad" with lines lw 2
+replot 'data' using 2:13 title "32-thread add" with lines lw 2 lt rgb "violet"
+##replot 'data' using 2:14 title "32-thread triad" with lines lw 2
 #replot 'data' using 2:15 title "64-thread add" with lines lw 2
+#replot 'data' using 2:16 title "64-thread triad" with lines lw 2
 #replot 'data2' using 2:14 title "61-thread triad" with lines lw 2
 #replot 'data2' using 2:16 title "141-thread triad" with lines lw 2
 #replot 'data2' using 2:18 title "244-thread triad" with lines lw 2

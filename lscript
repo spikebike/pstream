@@ -21,7 +21,7 @@ replot 'data' using 2:5 title "2-thread" with lines lw 2
 replot 'data' using 2:7 title "4-thread" with lines lw 2
 replot 'data' using 2:9 title "8-thread" with lines lw 2
 replot 'data' using 2:11 title "16-thread" with lines lw 2
-replot 'data' using 2:13 title "32-thread" with lines lw 2
+replot 'data' using 2:13 title "32-thread" with lines lw 2 lt rgb "violet"
 replot 'data' using 2:15 title "64-thread" with lines lw 2
 #replot 'data2' using 2:13 title "61-thread" with lines lw 2
 #replot 'data2' using 2:15 title "122-thread" with lines lw 2
