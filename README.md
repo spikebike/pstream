@@ -22,10 +22,6 @@ For command line options:
 
 To run a bandwidth test: 
 	./pstream -b -f output_file 
-	
-	Example 
-	![Performance stats](http://github.com/spikebike/pstream/blob/master/png/i5-4570-bw-Ua.png)
-
 
 To run a latency test: 
 	./pstream -l -f output_file 
