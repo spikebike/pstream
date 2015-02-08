@@ -1,5 +1,5 @@
 # pstream
-A bandwidth and latency benchmark to test cache and memory latency, bandwidth, and parallelism.
+A bandwidth, latency, and parallelism benchmark to test cache and memory. 
 
 Designed to expose and quantify parallelism in the memory hierarchy 
 by tracking the performance of varying number of threads over varying
@@ -12,7 +12,7 @@ The bandwidth test does Triad and Sum with very similar inner loops to McCalpin'
 
 The latency test visits each cache line exactly once.  With -p0 each member of the array is shuffled to random position in the entire array.
 
-With -pN each member of the array is shuffled to within N paged.  This is used to allow seperation of testing memory latency with TLB latency/thrashing.
+With -pN each member of the array is shuffled to within N pages.  This is used to allow seperation of testing memory latency with TLB latency/thrashing.
 
 To compile:
     make

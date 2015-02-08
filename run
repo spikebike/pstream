@@ -3,7 +3,7 @@
 export time=0.4
 # slightly more timesteps
 export shrink=95
-#size of i5-4570 L3 cache
+#size of L3 cache
 export csize=20480
 #max threads
 export maxt=32
