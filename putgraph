@@ -1,0 +1,3 @@
+#!/bin/bash
+gnuplot cscript
+./cfix.pl out.svg > out2.svg

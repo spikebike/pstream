@@ -1,0 +1,5 @@
+#minMemory=524288000 maxMemory=536870912 minThreads=1 maxThreads=64 writing to output_file band=1 lat=0
+#increaseArray=0.925000 timestep=0.250000 cacheSize=32768 cacheLineSize=128
+#affinity=0 affinity_wide=0
+#numPages=1
+ar= 524288.00 13978.74 13897.59 15360.12 15426.33 14805.84 15945.67 11793.46 12137.00 11021.44 11000.61 10549.53 10800.11 10719.41 10831.87 

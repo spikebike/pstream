@@ -1,0 +1,27 @@
+#!/bin/bash
+# run somewhat longer than default per timestep
+export time=0.4
+# slightly more timesteps
+export shrink=95
+#size of i5-4570 L3 cache
+export csize=6144
+#max threads
+export max=4;
+
+./pstream -f results/i5-4570-bw-U  -b -t 1 -T $max -m 16 -M 64 -s $time -i $shrink -c $csize --shared -U
+./pstream -f results/i5-4570-bw-Ua -b -t 1 -T $max -m 16 -M 64 -s $time -i $shrink -c $csize --shared -U -a
+./pstream -f results/i5-4570-bw-UA -b -t 1 -T $max -m 16 -M 64 -s $time -i $shrink -c $csize --shared -U -A
+
+# TLB thrashing random over entire array
+./pstream -f results/i5-4570-lat-p0 -l -U -t 1 -T $max -m 16 -M 64 -s $time -i $shrink -U -p 0
+# TLB friendly, random across a sliding window of a page or so
+./pstream -f results/i5-4570-lat-p1 -l -U -t 1 -T $max -m 16 -M 64 -s $time -i $shrink -U -p 1
+
+for i in results/i5-4570-bw*; do
+	./view $i;
+done
+for i in results/i5-4570-lat*; do
+	./lview $i;
+done
+
+

@@ -1,0 +1,32 @@
+#set terminal gif
+#set yrange [1024:1200000]
+#set yrange [1024:]
+set logscale x 2
+set logscale y
+set ytics ( 1,2,4,8,16,"32M" 32,"64M" 64,"128M" 128,"256M" 256,"512M" 512,"1G" 1024,"2G" 2048,"4G" 4096,"8G" 8192,"16G" 16384,"32G" 32768,"64G" 65536,"128G" 131072,"256G" 262144,"512G" 524288,"1024G" 1048576)
+set xtics (1,2,4,8,16,"32k" 32,"64k" 64,"128k" 128,"256k" 256,"512k" 512,"1M" 1024,"2M" 2048,"4M" 4096,"8M" 8192,"16M" 16384,"32M" 32768,"64M" 65536,"128M" 131072,"256M" 262144,"512M" 524288)
+set title "Bandwidth and Parallelism in the Memory Hierarchy" font "verdana,16"; 
+set xlabel "Array size in bytes" font "verdanab,12"
+set ylabel "GB/sec" font "verdanab,12"
+set grid
+#set data style lines
+plot 'data' using 2:3 title "1-thread add" with lines lw 2
+##replot 'data' using 2:4 title "1-thread triad" with lines lw 2
+replot 'data' using 2:5 title "2-thread add" with lines lw 2
+#replot 'data' using 2:6 title "2-thread triad" with lines lw 2
+replot 'data' using 2:7 title "4-thread add" with lines lw 2
+#replot 'data' using 2:8 title "4-thread triad" with lines lw 2
+#replot 'data' using 2:9 title "8-thread add" with lines lw 2
+#replot 'data' using 2:10 title "8-thread triad" with lines lw 2
+#replot 'data' using 2:11 title "16-thread add" with lines lw 2
+#replot 'data' using 2:13 title "32-thread add" with lines lw 2
+#replot 'data' using 2:15 title "64-thread add" with lines lw 2
+#replot 'data2' using 2:14 title "61-thread triad" with lines lw 2
+#replot 'data2' using 2:16 title "141-thread triad" with lines lw 2
+#replot 'data2' using 2:18 title "244-thread triad" with lines lw 2
+set mouse
+unset multiplot
+pause -1
+set term png size 800,600
+set output 'out.png'
+replot

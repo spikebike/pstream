@@ -1,0 +1,7 @@
+#!/bin/bash
+export GDFONTPATH=/usr/share/fonts/truetype/msttcorefonts
+export GNUPLOT_DEFAULT_GDFONT=verdanab
+rm data
+ln -s $1 data
+gnuplot lscript                      
+mv out.png png/`basename $1`.png

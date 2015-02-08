@@ -1,0 +1,27 @@
+#set terminal gif
+set yrange [1024:]
+set logscale x 2
+set logscale y
+set ytics ( 1,2,4,8,16,"32M" 32,"64M" 64,"128M" 128,"256M" 256,"512M" 512,"1G" 1024,"2G" 2048,"4G" 4096,"8G" 8192,"16G" 16384,"32G" 32768,"64G" 65536,"128G" 131072,"256G" 262144,"512G" 524288)
+set xtics (1,2,4,8,16,"32k" 32,"64k" 64,"128k" 128,"256k" 256,"512k" 512,"1M" 1024,"2M" 2048,"4M" 4096,"8M" 8192,"16M" 16384,"32M" 32768,"64M" 65536,"128M" 131072,"256M" 262144,"512M" 524288)
+set title "Bandwidth and Parallelism in the Memory Hierarchy" font "verdana,16"; 
+set xlabel "Array size in bytes" font "verdanab,12"
+set ylabel "GB/sec" font "verdanab,12"
+set grid
+set data style lines
+plot 'dual-shanghai-gcc440' using 2:3 title "2 x shanghai 1t" with lines lw 2
+replot 'dual-shanghai-gcc440' using 2:5 title "2 x shanghai 2t" with lines lw 2
+replot 'dual-shanghai-gcc440' using 2:7 title "2 x shanghai 4t" with lines lw 2
+replot 'dual-shanghai-gcc440' using 2:9 title "2 x shanghai 8t" with lines lw 2
+replot 'dual-nehalem' using 2:3 title "2 x nehalem 1t" with lines lw 2
+replot 'dual-nehalem' using 2:5 title "2 x nehalem 2t" with lines lw 2
+replot 'dual-nehalem' using 2:7 title "2 x nehalem 4t" with lines lw 2
+replot 'dual-nehalem' using 2:9 title "2 x nehalem 8t" with lines lw 2
+set mouse
+unset multiplot
+set term svg size 1024,768
+set output 'out.svg'
+replot
+set term png size 1024,768
+set output 'out.png'
+replot
