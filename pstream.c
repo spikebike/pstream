@@ -524,7 +524,7 @@ stream_thread (void *arg)
 	if (usenuma)
 	{
 #ifdef USENUMA
-		numa_run_on_node (id->id % numa_max_node());
+		numa_run_on_node (id->id % (numa_max_node()+1));
 #endif
 #ifdef VERBOSE
 		printf ("id=%d numa_id=%d numa_max=%d\n", id->id, id->id % 2,numa_max_node());
