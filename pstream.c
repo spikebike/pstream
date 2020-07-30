@@ -524,10 +524,10 @@ stream_thread (void *arg)
 	if (usenuma)
 	{
 #ifdef USENUMA
-		numa_run_on_node (id->id % CPUS);
+		numa_run_on_node (id->id % numa_max_node());
 #endif
 #ifdef VERBOSE
-		printf ("id=%d numa_id=%d\n", id->id, id->id % 2);
+		printf ("id=%d numa_id=%d numa_max=%d\n", id->id, id->id % 2,numa_max_node());
 #endif
 		/* split the cache into thirds, and insure that each array maps
 		   into it's 3rd.  Helps quite a bit on shanhai. */
