@@ -44,7 +44,7 @@
 #define BENCHMARKS 2
 #define MAX_THREADS 244
 #define MAX_ITER 256
-#define CPUS 64
+#define CPUS 36
 
 struct idThreadParams {
 	int id;
