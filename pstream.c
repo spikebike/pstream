@@ -532,7 +532,6 @@ stream_thread (void *arg)
 		/* split the cache into thirds, and insure that each array maps
 		   into it's 3rd.  Helps quite a bit on shanhai. */
 #ifdef USENUMA
-		printf ("on cpu %d freeing %d\n",id->id);
 		aa =
 			(double *) numa_alloc_local (size * sizeof (double) + 2 * cacheSize +
 			2 * cacheLineSize);
@@ -681,8 +680,7 @@ stream_thread (void *arg)
 	sync_thread (id->id, label[2]);
 	if (usenuma)
 	{
-#ifdef USENMA
-		printf ("freeing %d\n",size * sizeof (double) + 2 * cacheSize + 2 * cacheLineSize);
+#ifdef USENUMA
 		numa_free (aa, size * sizeof (double) + 2 * cacheSize + 2 * cacheLineSize);
 		numa_free (bb, size * sizeof (double) + 2 * cacheSize + 2 * cacheLineSize);
 		numa_free (cc, size * sizeof (double) + 2 * cacheSize + 2 * cacheLineSize);
