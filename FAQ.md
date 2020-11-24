@@ -4,7 +4,7 @@
 	I've done audit's using cache and TLD CPU counters.  I've also compared to lmbench's
    lat_mem_rd
 
-   Example 1: lat_mem_rd stride 512 = pstream -b 16
+Example 1: lat_mem_rd stride 512 = pstream -b 16
 ```
    $ lat_mem_rd -P 1 1024 512 # 1GB stride 512 bytes
    512.00000 71.283
@@ -15,8 +15,8 @@
    1 Thread(s) size=1.000GB repeat=1.000   diff=0.589 lat = 70.245258 avgLat = 70.245258 
    1 Thread(s) size=768.0MB repeat=1.000   diff=0.439 lat = 69.759733 avgLat = 69.759733
    1 Thread(s) size=576.0MB repeat=1.000   diff=0.343 lat = 72.628271 avgLat = 72.628271
-   ```
-	Example 2: lat_mem_rd stride 256 = pstream -b 8
+```
+Example 2: lat_mem_rd stride 256 = pstream -b 8
 	
 	```
 	$ ./lat_mem_rd -P 1 1024 256
