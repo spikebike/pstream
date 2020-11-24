@@ -17,7 +17,7 @@
    1 Thread(s) size=576.0MB repeat=1.000   diff=0.343 lat = 72.628271 avgLat = 72.628271
 ```
 	Example 2: lat_mem_rd stride 256 = pstream -b 8
-	```
+```
 	$ ./lat_mem_rd -P 1 1024 256
 	512.00000 57.530
 	768.00000 57.232
@@ -27,7 +27,7 @@
 	1 Thread(s) size=1.000GB repeat=1.000   diff=0.471 lat = 56.130069 avgLat = 56.130069
 	1 Thread(s) size=768.0MB repeat=1.000   diff=0.358 lat = 56.874768 avgLat = 56.874768
 	1 Thread(s) size=576.0MB repeat=1.000   diff=0.267 lat = 56.485949 avgLat = 56.485949
-	```
+```
 	
 2. Why is benchmarking random access so hard?  
 
