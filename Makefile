@@ -19,7 +19,7 @@ SRCFILES=pstream.c
 OBJFILES=pstream.o
                                                                                     
 pstream: $(OBJFILES) Makefile
-	$(CC) -o pstream $(OPT) pstream.c $(LIBS)
+	$(CC) -o pstream $(OPT) $(OBJFILES) $(LIBS)
 
 .c.o:
 	$(CC) -c $(OPT) $*.c
