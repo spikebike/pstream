@@ -10,14 +10,14 @@
 #CC = gcc -std=gnu99
 OPT = -pedantic -Wall -DUSEAFFINITY -DUSENUMA -O4 -pedantic -Wall -fargument-noalias-anything -fstrict-aliasing
 #CC=icc -O3
-OPT = -O3 -DUSEAFFINITY -DUSENUMA -pedantic -Wall -fbounds-check
-#add -march=amdfam10 for newer AMDs (bulldozer, piledriver)
+#linux options
+CC = gcc
+OPT = -O3 -DUSEAFFINITY -DUSENUMA -pedantic -Wall
+LIBS = -lpthread -lnuma
 
 #OSX options
 CC = cc
 OPT = -O3 -pedantic -Wall
-# for debugging
-#-fsanitize=address
 LIBS = -lpthread 
 
 SRCFILES=pstream.c
