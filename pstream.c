@@ -774,6 +774,7 @@ main (int argc, char *argv[])
 {
 	double diff;
 	double max, min;
+	FILE *fp;
 	int64_t i, j, array_size, num_array;
 	int ret = 0;
 	pthread_t reader[MAX_THREADS];
@@ -927,7 +928,12 @@ main (int argc, char *argv[])
 			  cacheLineSize);
 	printf ("affinity=%d affinity_wide=%d shared=%d\n", affinity, affinity_wide,shared_cache);
 	printf ("usenuma=%d numPages=%d\n", usenuma, numPages);
-
+ 	fp = fopen (logfile, "w");
+   if (fp == NULL) {
+    printf("Error opening file: %s\n",logfile);
+    exit(-1);
+   }
+	fclose(fp);
 	begin = second ();
 	cur_threads = id.minThreads;
 	while (cur_threads <= id.maxThreads)
