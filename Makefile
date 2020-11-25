@@ -13,10 +13,12 @@ OPT = -pedantic -Wall -DUSEAFFINITY -DUSENUMA -O4 -pedantic -Wall -fargument-noa
 OPT = -O3 -DUSEAFFINITY -DUSENUMA -pedantic -Wall -fbounds-check
 #add -march=amdfam10 for newer AMDs (bulldozer, piledriver)
 
-#clang options
-CC = clang-9
-OPT = -g -DUSEAFFINITY -DUSENUMA -pedantic -Wall -fsanitize=address
-LIBS = -lpthread -lnuma
+#OSX options
+CC = cc
+OPT = -O3 -pedantic -Wall
+# for debugging
+#-fsanitize=address
+LIBS = -lpthread 
 
 SRCFILES=pstream.c
 

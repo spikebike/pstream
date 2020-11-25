@@ -439,7 +439,7 @@ print_bandwidth (char *str, struct idThreadParams id)
 	 printf("Error opening file: %s\n",str);
     exit(-1);
 	}
-	printf ("fp = %p str=%s\n",(void *)fp,str);
+//	printf ("fp = %p str=%s\n",(void *)fp,str);
 	fprintf
 		(fp,
 		 "#minMemory=%d maxMemory=%" PRIu64
@@ -465,7 +465,6 @@ print_bandwidth (char *str, struct idThreadParams id)
 		fprintf (fp, "\n");
 		array_size = array_size * increaseArray;
 		num_array++;
-		printf ("num_array=%d\n",num_array);
 	}
 	fclose (fp);
 }
