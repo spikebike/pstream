@@ -19,7 +19,7 @@
 #include <numa.h>
 #endif
 
-/* Pstream version 1.10 - written by Bill Broadley bill@cse.ucdavis.edu
+/* Pstream version 1.11 - written by Bill Broadley bill@cse.ucdavis.edu
 
  Designed to expose and quantify parallelism in the memory hierarchy 
  by tracking the performance of varying number of threads over varying
@@ -70,7 +70,7 @@ int pageSize = 4096;
 int numPages = 1;
 int perCacheLine;
 int cacheLinesPerPage;
-int cur_threads;
+long int cur_threads;
 
 int64_t maxmem;
 
@@ -470,8 +470,8 @@ print_bandwidth (char *str, struct idThreadParams id)
 }
 
 void
-bandwidth_time (double *times, double *results, int maxmem, int scale,
-					 int cur_threads)
+bandwidth_time (double *times, double *results, int64_t maxmem, int scale,
+					 long int cur_threads)
 {
 	int i;
 	double bandwidth;
@@ -479,6 +479,7 @@ bandwidth_time (double *times, double *results, int maxmem, int scale,
 	for (i = 0; i < 2; i++)
 	{
 		bandwidth = ((maxmem / 1024.0) * cur_threads * scale) / times[i];
+//		printf("maxmem=%d cur_threads=%ld scale=%d time=%f\n",maxmem,cur_threads,scale,times[i]);
 		bandwidth = bandwidth / 1024.0;	/* convert KB to MB. */
 		if (i == 0)
 			printf ("add = %6.2f MB/sec ", bandwidth);
@@ -491,7 +492,7 @@ bandwidth_time (double *times, double *results, int maxmem, int scale,
 
 void
 latency_time (double *times, double *results, int64_t maxmem, int scale,
-				  int cur_threads)
+				  long int cur_threads)
 {
 	int64_t hops;
 	double diff;
@@ -938,7 +939,7 @@ main (int argc, char *argv[])
 	cur_threads = id.minThreads;
 	while (cur_threads <= id.maxThreads)
 	{
-		printf ("*** threads=%d\n", cur_threads);
+		printf ("*** threads=%ld\n", cur_threads);
 		array_size = maxMemory;	/* start large and shrink to keep malloc happy */
 		/* Insure that every array is an even multiple of the cacheline size */
 		diff = timeStep;
@@ -989,7 +990,7 @@ main (int argc, char *argv[])
 #endif
 			}
 
-			printf ("%d Thread(s) size=%sB repeat=%s ", cur_threads,
+			printf ("%ld Thread(s) size=%sB repeat=%s ", cur_threads,
 					  fToStringBin (array_size / 1024.0, result1),
 					  fToStringDec ((float) scale, result2));
 			for (i = 0; i < BENCHMARKS; i++)
