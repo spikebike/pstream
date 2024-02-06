@@ -56,7 +56,7 @@ double timeAr[MAX_THREADS][BENCHMARKS * 2];
 
 static int shared_cache = 0;
 int minMemory = 500 * 1024 * 1024;
-int64_t maxMemory = 512 * 1024 * 1024;
+int64_t maxMemory = 1024 * 1024 * 1024; // 2GB
 double timeStep = 0.25;
 int cacheLineSize = 128;		  /* bytes per cacheline */
 int64_t cacheSize = 32 * 1024;  /* q6600 = 4MB share per die, or 2MB per core */
@@ -290,6 +290,11 @@ latency_thread (void *arg)
 
 #else
 		aa = (int64_t *) malloc (len);
+		if (!aa) 
+		{
+			printf ("failed alloc of %" PRId64 "\n",len);
+			exit(-1);
+		}
 #endif
 	}
 	/* allocate the entire cache */
@@ -708,6 +713,7 @@ help (char *argv[],struct idThreadParams id)
 	printf ("Usage: %s <options>\n", argv[0]);
 	printf ("  [-a ] use sched_setaffinity, default off\n");
 	printf ("  [-A ] use sched_setaffinity striped across CPUs default off\n");
+   printf ("  [-b ] Run bandwidth benchmarks\n");
 	printf
 		("  [-c <set cache size in k bytes to align to>] default %" PRIu64
 		 ", set to zero to disable\n", cacheSize / 1024);
@@ -716,6 +722,7 @@ help (char *argv[],struct idThreadParams id)
 			  increaseArray * 100.0);
 	printf ("  [-t <maximum number of threads>] default %d\n", id.minThreads);
 	printf ("  [-T <minimum number of threads>] default %d\n", id.maxThreads);
+   printf ("  [-l ] Run latency benchmarks\n");
 	printf ("  [-m <minimum array size in K>] default %d\n", minMemory / 1024);
 	printf ("  [-M <maximum array size in M>] default %" PRIu64 "\n",
 			  maxMemory / 1024);
@@ -917,7 +924,7 @@ main (int argc, char *argv[])
 	}
 	if ((band + lat) != 1)
 	{
-		printf ("you must pick exactly 1 of bandwdth and latency testing\n");
+		printf ("you must pick exactly 1 of -b (bandwdth) and -l (latency) testing\n");
 		exit (-1);
 	}
 	printf
