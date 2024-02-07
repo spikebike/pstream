@@ -4,5 +4,9 @@ Pstream is designed to explore the bandwidth and latency of the memory hierarchy
 
 Includes gnuplot scripts for visualizing results.
 
+Todo:
+* Implement shuffer to visit each cacheline of N (settable with -p) pages exactly once before proceeding to the next page.
+
+
 
  
