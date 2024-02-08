@@ -2,6 +2,7 @@
 #define _MULTI_THREADED
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/param.h>
 #include <getopt.h>
 #include <pthread.h>
 #include <sys/time.h>
@@ -169,11 +170,6 @@ choose (uint64_t l, uint64_t h)
 	assert (l <= h);
 	smallr = range / perCacheLine;	/* the number of cachelines in
 												   the range */
-	if (numPages > 0)
-	{
-		if (smallr > cacheLinesPerPage * numPages)
-			smallr = cacheLinesPerPage * numPages;
-	}
 	/* pick a cache line within the range */
 	ret = (l + (uint64_t) (drand48 () * smallr) * perCacheLine);
 /*  printf ("l=%lld h=%lld ret=%lld\n",l,h,ret);  */
@@ -256,8 +252,9 @@ latency_thread (void *arg)
 	int64_t *a;
 	int64_t *aa = NULL;
 	int64_t x, y;
-	int64_t i, c;
+	int64_t i, j, c, max;
 	int64_t size, len = 0;
+   int64_t hops;
 
 #ifdef USEAFFINITY
 	if (affinity)
@@ -315,18 +312,19 @@ latency_thread (void *arg)
 #if DEBUG
 	printAr (a, size);
 #endif
-	for (i = 0; i < (size - perCacheLine); i = i + perCacheLine)
-	{
-		c = choose (i, size - perCacheLine);
-		if (c > (size - perCacheLine))
+   i=0;
+   hops=(pageSize*numPages)/sizeof(int64_t);  // 512 per x86-64 4k page
+   while (i<(size-perCacheLine)) {
+		max=MIN((size-perCacheLine),i+hops);
+		for (j = i; j < (max- perCacheLine); j = j + perCacheLine)
 		{
-			printf ("this should never happen *****************\n");
+			c = choose (j, max - perCacheLine);
+			x = a[j];
+			y = a[c];
+			swap (a, j, c);
+			swap (a, x, y);
 		}
-		x = a[i];
-		y = a[c];
-		swap (a, i, c);
-		swap (a, x, y);
-	}
+   }
 #if DEBUG
 	printAr (a, size);
 #endif
