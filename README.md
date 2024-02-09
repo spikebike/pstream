@@ -5,7 +5,11 @@ Pstream is designed to explore the bandwidth and latency of the memory hierarchy
 Includes gnuplot scripts for visualizing results.
 
 Todo:
-* Implement shuffer to visit each cacheline of N (settable with -p) pages exactly once before proceeding to the next page.
+* Implement shuffel to visit each cacheline of N (settable with -p) pages exactly once before proceeding to the next page.
+* Ensure HUGETLB and regular memory allocation are page aligned.
+* Fix defaults to enable linux flags for NUMA and USEAFFINITY
+* Write example script to show bandwidth/latency impacted by TLB friendliness.
+  
 
 
 
