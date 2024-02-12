@@ -85,7 +85,7 @@ main (int argc, char *argv[])
 	int64_t size, len = 0;
 	int64_t c,x,y,max,hops,base;
 	int64_t i;
-	int64_t *a;
+	int64_t *a, *b;
 	int64_t p = 0;
    int l;
 
@@ -116,18 +116,20 @@ main (int argc, char *argv[])
 	while (base<size)
 	{
 		max=MIN(hops,size-base);
-		printf ("**************** base=%ld max=%ld a[0]=%ld \n",base,max,a[0]);
+		b=&a[base];
+		printf ("A**************** base=%ld max=%ld a[0]=%ld \n",base,max,a[0]);
+		printf ("**************** a=%p b=%p diff=%ld\n",a,b,b-a);
 		for (i = 0; i < max; i = i + perCacheLine)
    	{
 			c = choose (i, max);
-			x = a[i+base];
-			y = a[c+base];
+			x = b[i];
+			y = b[c];
 	 	 	printAr(a,size,hops);
 			printf ("base=%ld aswapping %ld with %ld i=%ld max=%ld c=%ld\n",base,i+base,c+base,i,max,c);
-			swap (a, i+base, c+base);
+			swap (b, i, c);
   		 	printAr(a,size,hops);
 			printf ("base=%ld bswapping %ld with %ld i=%ld max=%ld c=%ld\n",base,x,y,i,max,c);
-			swap (a, x, y);
+			swap (b, x, y);
  		}
 		base=base+hops;
    }
