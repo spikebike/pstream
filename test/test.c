@@ -63,6 +63,7 @@ printAr (int64_t * a, int64_t N,int64_t hops)
 {
 	int64_t i;
 	int64_t oldi;
+	int64_t *b;
 
 	oldi=0;
    for (i = 0; i < N; i++)
@@ -72,7 +73,8 @@ printAr (int64_t * a, int64_t N,int64_t hops)
 		}
       printf("%3ld=%03ld ",i,a[i]);
 		if (i%hops==(hops-1)) {
-			followAr(a,i-(hops-1));
+			b=&a[i-(hops-1)];
+			followAr(b,0);
 			oldi=i;
 		}
    }
@@ -101,9 +103,10 @@ main (int argc, char *argv[])
 	while (base<size)
    {
 		max=MIN(hops,size-base);
+		b=&a[base];
 		for (i = 0; i < max; i = i + perCacheLine)
    	{
-     		a[base+i] = base+ i + perCacheLine;   /* assign each int the index of the next int */
+     		b[i] =  i + perCacheLine;   /* assign each int the index of the next int */
    	}
 		printf ("base=%ld i=%ld\n",base,i);	
       a[base+i-perCacheLine]=0;
