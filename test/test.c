@@ -35,13 +35,15 @@ choose (uint64_t l, uint64_t h)
    return h;
 }
 
-void followAr(int64_t * a)
+void followAr(int64_t * a,int64_t n)
 {
-	int64_t max,p,cnt;
+	int64_t min,max,p,cnt;
 
 	max=0;
-	p=a[0];
+	min=65536;
+	p=a[n];
    cnt=0;
+//	printf ("f @ %ld ", n);
 	while (p > 0)
    {
          p = a[p];
@@ -49,22 +51,31 @@ void followAr(int64_t * a)
 			if (p>max) {
 				max=p;
 			}
+			if (p<min) {
+				min=p;
+			}
    }
-	printf ("max=%ld cnt=%ld\n",max,cnt);
+	printf ("min=%ld max=%02ld cnt=%ld\n",min,max,cnt);
 }
 
 void
 printAr (int64_t * a, int64_t N,int64_t hops)
 {
 	int64_t i;
+	int64_t oldi;
+
+	oldi=0;
    for (i = 0; i < N; i++)
    {
 		if (i%hops==0) {
-			printf("\ni=%03ld  ",i);
+			printf("i=%03ld  ",i);
 		}
       printf("%3ld=%03ld ",i,a[i]);
+		if (i%hops==(hops-1)) {
+			followAr(a,i-(hops-1));
+			oldi=i;
+		}
    }
-	followAr(a);
    printf("\n\n");
 }
 
@@ -86,13 +97,17 @@ main (int argc, char *argv[])
    hops=8;    // keep hops within N INT64s
 	len = (size * sizeof (uint64_t));
 	a = (int64_t *) malloc (len);
-   for (p=0; p < size; p=p+hops)
+	base=0;
+	while (base<size)
    {
-		for (i = 0; i < size-perCacheLine; i = i + perCacheLine)
+		max=MIN(hops,size-base);
+		for (i = 0; i < max; i = i + perCacheLine)
    	{
-     		a[i] = i + perCacheLine;   /* assign each int the index of the next int */
+     		a[base+i] = base+ i + perCacheLine;   /* assign each int the index of the next int */
    	}
-      a[size-perCacheLine]=0;
+		printf ("base=%ld i=%ld\n",base,i);	
+      a[base+i-perCacheLine]=0;
+		base=base+hops;
    }
    printAr(a,size,hops);
 	printf("\n");
@@ -100,57 +115,25 @@ main (int argc, char *argv[])
    base=0;
 	while (base<size)
 	{
-		max=MIN(hops,(size-1)-base);
-//		printf ("**************** base=%ld max=%ld a[0]=%ld bm\n",base,max,a[0],base+max);
+		max=MIN(hops,size-base);
+		printf ("**************** base=%ld max=%ld a[0]=%ld \n",base,max,a[0]);
 		for (i = 0; i < max; i = i + perCacheLine)
    	{
 			c = choose (i, max);
-         if (c == i) {
-				printf ("no swap base=%ld i=%ld c=%ld max=%ld\n",base,i,c,max);
-			} else {
-				x = a[i+base];
-				y = a[c+base];
-				int64_t  bm=base+max-1;
-				while ((x>bm) || (y>bm) || (a[i]>bm) || (a[c] > bm)) {
-					printf ("w x=%ld y=%ld a[%ld]=%ld a[%ld]=%ld i=%ld max=%ld bm=%ld ",x,y,i,a[i],c,a[c],i,max,bm);
-               for (l=i; l<max;l++) { printf ("a[%d]=%ld ",l,a[l]); }
-               printf ("\n");
-					c = choose (i, max);
-					x = a[i+base];
-					y = a[c+base];
-				}
-				printf ("no w x=%ld y=%ld a[%ld]=%ld a[%ld]=%ld i=%ld max=%ld ",x,y,i,a[i],c,a[c],i,max);
-			
-				if ((x<base) || (y<base)){ 
-				 	printf("base too low base=%ld c=%ld x=%ld y=%ld i=%ld max=%ld\n",base,c,x,y,i,max);
-				}
-				if ((x>(base+hops)) || (y>(base+hops))){ 
-				 	printf("base too high base=%ld c=%ld x=%ld y=%ld i=%ld max=%ld\n",base,c,x,y,i,max);
-				}
-  		 		printAr(a,size,hops);
-				printf ("base=%ld aswapping %ld with %ld i=%ld max=%ld c=%ld bm=%ld\n",base,i+base,c+base,i,max,c,bm);
-				swap (a, i+base, c+base);
-  		 		printAr(a,size,hops);
-				printf ("base=%ld bswapping %ld with %ld i=%ld max=%ld c=%ld bm=%ld\n",base,x,y,i,max,c,bm);
-				swap (a, x, y);
-			}
+			x = a[i+base];
+			y = a[c+base];
+	 	 	printAr(a,size,hops);
+			printf ("base=%ld aswapping %ld with %ld i=%ld max=%ld c=%ld\n",base,i+base,c+base,i,max,c);
+			swap (a, i+base, c+base);
+  		 	printAr(a,size,hops);
+			printf ("base=%ld bswapping %ld with %ld i=%ld max=%ld c=%ld\n",base,x,y,i,max,c);
+			swap (a, x, y);
  		}
 		base=base+hops;
    }
    printf ("exit while\n");
 	printf ("base=%ld max=%ld a[0]=%ld\n",base,max,a[0]);
    printAr(a,size,hops);
-	followAr(a);
+	followAr(a,0);
 
-/*	max=0;
-	p=a[0];
-	while (p > 0)
-   {
-         p = a[p];
-			cnt++;
-			if (p>max) {
-				max=p;
-			}
-   }
-	printf ("max=%ld cnt=%ld\n",max,cnt); */
 }
