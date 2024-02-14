@@ -66,10 +66,10 @@ printAr (int64_t * a, int64_t N,int64_t hops)
 	int64_t *b;
 
 	oldi=0;
-   for (i = 0; i < N; i++)
+   for (i = 0; i < N; i=i+16)
    {
 		if (i%hops==0) {
-			printf("i=%03ld  ",i);
+			printf("\ni=%03ld  ",i);
 		}
       printf("%3ld=%03ld ",i%hops,a[i]);
 		if (i%hops==(hops-1)) {
@@ -93,10 +93,10 @@ main (int argc, char *argv[])
 
 	srand48(getpid());
 
-   perCacheLine=1;
+   perCacheLine=16;
 
-	size=64;  // int64s
-   hops=8;    // keep hops within N INT64s
+	size=768;  // int64s
+   hops=512;    // keep hops within N INT64s
 	len = (size * sizeof (uint64_t));
 	a = (int64_t *) malloc (len);
 	base=0;

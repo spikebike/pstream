@@ -259,18 +259,23 @@ void
 printAr (int64_t *a, int64_t N, int64_t hops)
 {
    int64_t i;
+	int64_t lcnt;
 //   int64_t *b;
 //	int64_t oldi;
 
 //	oldi=0;
-   for (i = 0; i < N; i=i+8)
+	lcnt=0;
+	N=768;
+   for (i = 0; i < N; i=i+16)
    {
       if (i%hops==0) {
-         printf("\n\ni=%03ld  ",i);
+         printf("lcnt=%ld\ni=%03ld  ",lcnt,i);
+			lcnt=0;
       }
       printf("%3ld=%03ld ",i%hops,a[i]);
+		lcnt++;
    }
-   printf("\n\n");
+   printf("lcnt=%ld\n",lcnt);
 }
 
 void *
@@ -331,12 +336,13 @@ latency_thread (void *arg)
 	base=0;
    while (base<size)
 	{
-		max=MIN(hops,size-perCacheLine);
+		max=MIN(hops,size-base);
 		b=&a[base];
 		for (i = 0; i < max; i = i + perCacheLine)
 		{
 			b[i] = i + perCacheLine;	/* assign each int the index of the next int */
 		}
+//		printf ("i=%ld perCacheLine=%d\n",i,perCacheLine);
 		a[base+i-perCacheLine]=0;
 		base=base+hops;
 	}
@@ -887,7 +893,8 @@ main (int argc, char *argv[])
 			minMemory = atoi (optarg) * 1024;
 			break;
 		case 'M':
-			maxMemory = (int64_t) atoi (optarg) * 1024 * 1024;
+//			maxMemory = (int64_t) atoi (optarg) * 1024 * 1024;  
+			maxMemory= 768*8;  // hack
 			break;
 		case 'p':
 			numPages = atoi (optarg);
