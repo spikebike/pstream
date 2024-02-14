@@ -168,8 +168,8 @@ choose (uint64_t l, uint64_t h)
 	uint64_t range, smallr, ret;
 
 	range = h - l;
-   if (range<0) { printf ("l=%ld h=%ld\n",l,h); }
-//	assert (l <= h);
+   if (l>h) { printf ("l=%ld h=%ld\n",l,h); }
+	assert (l <= h);
 	smallr = range / perCacheLine;	/* the number of cachelines in
 												   the range */
 	/* pick a cache line within the range */
@@ -319,7 +319,7 @@ latency_thread (void *arg)
 	base=0;
    while (base<size)
 	{
-		max=MIN(hops,size-base);
+		max=MIN(hops,size-perCacheLine);
 		b=&a[base];
 		for (i = 0; i < max; i = i + perCacheLine)
 		{
@@ -337,7 +337,7 @@ latency_thread (void *arg)
 	base=0;
    while (base<size)
    {
-		max=MIN(hops,size-base);
+		max=MIN(hops,size-perCacheLine);
 		b=&a[base];
 		for (i = 0; i < max; i = i + perCacheLine)
 		{
