@@ -168,14 +168,13 @@ choose (uint64_t l, uint64_t h)
 	uint64_t range, smallr, ret;
 
 	range = h - l;
-   if (l>h) { printf ("l=%ld h=%ld\n",l,h); }
 	assert (l <= h);
 	smallr = range / perCacheLine;	/* the number of cachelines in
 												   the range */
 	/* pick a cache line within the range */
 	ret = (l + (uint64_t) (drand48 () * smallr) * perCacheLine);
 /*  printf ("l=%lld h=%lld ret=%lld\n",l,h,ret);  */
-//	assert (ret <= h);
+	assert (ret <= h);
 	if (l < h)
 		return ret;
 	return h;
@@ -212,6 +211,9 @@ follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
 #ifdef CNT
 	int64_t cnt;
 #endif
+#ifdef CNT
+			cnt=0;
+#endif
 	for (i = 0; i < repeat; i++)
 	{
 		base=0;
@@ -219,9 +221,6 @@ follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
 			b=&a[i];
 			p = b[0];
             p = a[p];
-#ifdef CNT
-			cnt=0;
-#endif
 			while (p > 0)
 			{
 				p = a[p];
@@ -230,11 +229,11 @@ follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
 #endif
 			}
 			base=base+hops;
-#ifdef CNT
-			printf ("cnt=%ld hops=%ld\n", cnt, hops);
-#endif
 		}
 	}
+#ifdef CNT
+	printf ("cnt=%ld hops=%ld size=%ld repeat=%d\n", cnt, hops,size,repeat);
+#endif
 
 	return (a[0]);
 }
@@ -255,6 +254,24 @@ set_affinity (struct idThreadParams id)
 	sched_setaffinity (0, sizeof (cpu_set_t), &cset);
 }
 #endif
+
+void
+printAr (int64_t *a, int64_t N, int64_t hops)
+{
+   int64_t i;
+//   int64_t *b;
+//	int64_t oldi;
+
+//	oldi=0;
+   for (i = 0; i < N; i=i+8)
+   {
+      if (i%hops==0) {
+         printf("\n\ni=%03ld  ",i);
+      }
+      printf("%3ld=%03ld ",i%hops,a[i]);
+   }
+   printf("\n\n");
+}
 
 void *
 latency_thread (void *arg)
@@ -308,12 +325,7 @@ latency_thread (void *arg)
 	/* allocate the entire cache */
 /*	a = (int64_t *) align_pointer (aa, cacheSize, cacheLineSize, 1, 0); */
 	a = aa;
-#ifdef DEBUG
-	printf ("aa=%p a=%p d=%d align=%d t=%d\n",
-			  aa, a, (int64_t) ((int64_t) a - (int64_t) aa),
-			  ((int64_t) (a)) % (cacheSize), id.id);
-#endif /* debug */
-
+   printf ("perCacheLine=%d cacheLineSize=%d\n",perCacheLine,cacheLineSize);
 	srand48 ((long int) getpid ());
    hops=(pageSize*numPages)/sizeof(int64_t);  // 512 per x86-64 4k page
 	base=0;
@@ -329,7 +341,7 @@ latency_thread (void *arg)
 		base=base+hops;
 	}
 #if DEBUG
-	printAr (a, size);
+	printAr (a, size, hops);
 #endif
    i=0;
 // Sort the linear list so each cache line is visited randomly
@@ -350,7 +362,7 @@ latency_thread (void *arg)
 		base=base+max;
    }
 #ifdef DEBUG
-	printAr (a, size);
+	printAr (a, size, hops);
 #endif
 	sync_thread (id->id, label[0]);
 	timeAr[id->id][0] = second ();
@@ -376,7 +388,7 @@ latency_thread (void *arg)
 #endif
 	}
 #if DEBUG
-	printf ("freed %d\n", id);
+	printf ("freed %d\n", id->id);
 #endif
 	pthread_exit (NULL);
 	return NULL;
@@ -385,25 +397,7 @@ latency_thread (void *arg)
 
 double bandwidthAr[MAX_THREADS][MAX_ITER][BENCHMARKS];
 
-#ifdef DEBUG
-void
-printAr (int64_t * a, int64_t N)
-{
-	int64_t i, j, n;
 
-	n = N;
-	j = 0;
-	for (i = 0; i < 256; i++)
-	{
-		if (i % perCacheLine == 0)
-		{
-			printf ("#%" PRIu64 " a[%" PRIu64 "] =%" PRIu64 " \n", j, i, a[i]);
-			j++;
-		}
-	}
-	printf ("\n");
-}
-#endif
 /*
 
 void
@@ -820,8 +814,6 @@ main (int argc, char *argv[])
 
    id.minThreads = 1;
 	id.maxThreads = 64;
-	perCacheLine = cacheLineSize / sizeof (int64_t);
-	cacheLinesPerPage = pageSize / cacheLineSize;
 	results[0] = 0;
 	results[1] = 0;
 
@@ -939,6 +931,8 @@ main (int argc, char *argv[])
 
 		}
 	}
+	perCacheLine = cacheLineSize / sizeof(int64_t);
+	cacheLinesPerPage = (pageSize*numPages)/sizeof(int64_t);
 	if (logfile == NULL)
 	{
 		printf ("You must specify a log file with -f\n");
@@ -1015,7 +1009,7 @@ main (int argc, char *argv[])
 			{
 				ret = pthread_join (reader[i], NULL);
 #ifdef DEBUG
-				printf ("join ret val=%d i=%d\n", ret, i);
+				printf ("join ret val=%d i=%ld\n", ret, i);
 #endif
 			}
 
