@@ -13,6 +13,7 @@
 #include <sched.h>
 #include <stdint.h>
 #include <inttypes.h>
+
 #ifdef USEHUGE
 #include <sys/mman.h>
 #endif
@@ -204,10 +205,10 @@ int
 follow_ar (int64_t * a, int64_t N, int repeat, int64_t hops)
 {
 	int64_t p = 0;
-	int64_t min,max,p,cnt;
+	int64_t *b;
 	int i;
 #ifdef CNT
-	int cnt;
+	int64_t cnt;
 	cnt = 0;
 #endif
 	for (i = 0; i < N; i=i+hops)
@@ -221,11 +222,11 @@ follow_ar (int64_t * a, int64_t N, int repeat, int64_t hops)
 			cnt++;
 #endif
 		}
+#ifdef CNT
+		printf ("cnt=%ld\n", cnt);
+#endif
 	}
 
-#ifdef CNT
-	printf ("cnt=%d\n", cnt);
-#endif
 	return (a[0]);
 }
 
@@ -253,9 +254,9 @@ latency_thread (void *arg)
 	int64_t *a,*b;
 	int64_t *aa = NULL;
 	int64_t x, y;
-	int64_t i, j, c, max;
+	int64_t i, c, max;
 	int64_t size, len = 0;
-   int64_t hops,max;
+   int64_t base,hops;
 
 #ifdef USEAFFINITY
 	if (affinity)
@@ -327,24 +328,24 @@ latency_thread (void *arg)
 	base=0;
    while (base<size)
    {
-		max=MIN((hops,size-base);
+		max=MIN(hops,size-base);
 		b=&a[base];
 		for (i = 0; i < max; i = i + perCacheLine)
 		{
-			c = choose (j, max - perCacheLine);
-			x = b[j];
+			c = choose (i, max - perCacheLine);
+			x = b[i];
 			y = b[c];
 			swap (b,i,c);
 			swap (b, x, y);
 		}
 		base=base+max;
    }
-#if DEBUG
+#ifdef DEBUG
 	printAr (a, size);
 #endif
 	sync_thread (id->id, label[0]);
 	timeAr[id->id][0] = second ();
-	follow_ar (a, size, scale);
+	follow_ar (a, size, scale,hops);
 	timeAr[id->id][1] = second ();
 	sync_thread (id->id, label[1]);
 #if DEBUG

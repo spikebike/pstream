@@ -12,13 +12,13 @@ OPT = -pedantic -Wall -DUSEAFFINITY -DUSENUMA -O4 -pedantic -Wall -fargument-noa
 #CC=icc -O3
 #linux options
 CC = gcc
-OPT = -O3 -DUSEAFFINITY -DUSENUMA -pedantic -Wall
+OPT = -O3 -DCNT -DUSEAFFINITY -DUSENUMA -pedantic -Wall
 LIBS = -lpthread -lnuma
 
 #OSX options
-CC = cc
-OPT = -O3 -pedantic -Wall
-LIBS = -lpthread 
+#CC = cc
+#OPT = -O3 -pedantic -Wall
+#LIBS = -lpthread 
 
 SRCFILES=pstream.c
 
