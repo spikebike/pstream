@@ -201,25 +201,26 @@ logint (int l /* 32-bit word to find the log base 2 of */ )
 }
 
 int
-follow_ar (int64_t * a, int64_t N, int repeat)
+follow_ar (int64_t * a, int64_t N, int repeat, int64_t hops)
 {
 	int64_t p = 0;
+	int64_t min,max,p,cnt;
 	int i;
 #ifdef CNT
 	int cnt;
 	cnt = 0;
 #endif
-	for (i = 0; i < repeat; i++)
+	for (i = 0; i < N; i=i+hops)
 	{
-		p = a[0];
+		b=&a[i];
+		p = b[0];
 		while (p > 0)
 		{
 			p = a[p];
+#ifdef CNT
+			cnt++;
+#endif
 		}
-	}
-	if (p < 0)
-	{
-		printf ("oops!\n");
 	}
 
 #ifdef CNT
@@ -249,12 +250,12 @@ void *
 latency_thread (void *arg)
 {
 	struct idThreadParams *id = arg;
-	int64_t *a;
+	int64_t *a,*b;
 	int64_t *aa = NULL;
 	int64_t x, y;
 	int64_t i, j, c, max;
 	int64_t size, len = 0;
-   int64_t hops;
+   int64_t hops,max;
 
 #ifdef USEAFFINITY
 	if (affinity)
@@ -304,26 +305,39 @@ latency_thread (void *arg)
 #endif /* debug */
 
 	srand48 ((long int) getpid ());
-	for (i = 0; i < size; i = i + perCacheLine)
+   hops=(pageSize*numPages)/sizeof(int64_t);  // 512 per x86-64 4k page
+	base=0;
+   while (base<size)
 	{
-		a[i] = i + perCacheLine;	/* assign each int the index of the next int */
+		max=MIN(hops,size-base);
+		b=&a[base];
+		for (i = 0; i < max; i = i + perCacheLine)
+		{
+			b[i] = i + perCacheLine;	/* assign each int the index of the next int */
+		}
+		a[base+i-perCacheLine]=0;
+		base=base+hops;
 	}
-	a[(i - perCacheLine)] = 0;	/* makes the array a loop */
 #if DEBUG
 	printAr (a, size);
 #endif
    i=0;
-   hops=(pageSize*numPages)/sizeof(int64_t);  // 512 per x86-64 4k page
-   while (i<(size-perCacheLine)) {
-		max=MIN((size-perCacheLine),i+hops);
-		for (j = i; j < (max- perCacheLine); j = j + perCacheLine)
+// Sort the linear list so each cache line is visited randomly
+	
+	base=0;
+   while (base<size)
+   {
+		max=MIN((hops,size-base);
+		b=&a[base];
+		for (i = 0; i < max; i = i + perCacheLine)
 		{
 			c = choose (j, max - perCacheLine);
-			x = a[j];
-			y = a[c];
-			swap (a, j, c);
-			swap (a, x, y);
+			x = b[j];
+			y = b[c];
+			swap (b,i,c);
+			swap (b, x, y);
 		}
+		base=base+max;
    }
 #if DEBUG
 	printAr (a, size);

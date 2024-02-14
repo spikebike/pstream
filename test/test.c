@@ -71,7 +71,7 @@ printAr (int64_t * a, int64_t N,int64_t hops)
 		if (i%hops==0) {
 			printf("i=%03ld  ",i);
 		}
-      printf("%3ld=%03ld ",i,a[i]);
+      printf("%3ld=%03ld ",i%hops,a[i]);
 		if (i%hops==(hops-1)) {
 			b=&a[i-(hops-1)];
 			followAr(b,0);
@@ -120,7 +120,7 @@ main (int argc, char *argv[])
 	{
 		max=MIN(hops,size-base);
 		b=&a[base];
-		printf ("A**************** base=%ld max=%ld a[0]=%ld \n",base,max,a[0]);
+		printf ("**************** base=%ld max=%ld a[0]=%ld \n",base,max,a[0]);
 		printf ("**************** a=%p b=%p diff=%ld\n",a,b,b-a);
 		for (i = 0; i < max; i = i + perCacheLine)
    	{
