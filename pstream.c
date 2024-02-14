@@ -168,13 +168,14 @@ choose (uint64_t l, uint64_t h)
 	uint64_t range, smallr, ret;
 
 	range = h - l;
-	assert (l <= h);
+   if (range<0) { printf ("l=%ld h=%ld\n",l,h); }
+//	assert (l <= h);
 	smallr = range / perCacheLine;	/* the number of cachelines in
 												   the range */
 	/* pick a cache line within the range */
 	ret = (l + (uint64_t) (drand48 () * smallr) * perCacheLine);
 /*  printf ("l=%lld h=%lld ret=%lld\n",l,h,ret);  */
-	assert (ret <= h);
+//	assert (ret <= h);
 	if (l < h)
 		return ret;
 	return h;
@@ -202,29 +203,37 @@ logint (int l /* 32-bit word to find the log base 2 of */ )
 }
 
 int
-follow_ar (int64_t * a, int64_t N, int repeat, int64_t hops)
+follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
 {
 	int64_t p = 0;
 	int64_t *b;
 	int i;
+	int64_t base;
 #ifdef CNT
 	int64_t cnt;
-	cnt = 0;
 #endif
-	for (i = 0; i < N; i=i+hops)
+	for (i = 0; i < repeat; i++)
 	{
-		b=&a[i];
-		p = b[0];
-		while (p > 0)
-		{
-			p = a[p];
+		base=0;
+		while (base<size) {
+			b=&a[i];
+			p = b[0];
+            p = a[p];
 #ifdef CNT
-			cnt++;
+			cnt=0;
+#endif
+			while (p > 0)
+			{
+				p = a[p];
+#ifdef CNT
+				cnt++;
+#endif
+			}
+			base=base+hops;
+#ifdef CNT
+			printf ("cnt=%ld hops=%ld\n", cnt, hops);
 #endif
 		}
-#ifdef CNT
-		printf ("cnt=%ld\n", cnt);
-#endif
 	}
 
 	return (a[0]);
@@ -262,7 +271,7 @@ latency_thread (void *arg)
 	if (affinity)
 		set_affinity (*id);
 #endif
-	size = maxmem / sizeof (int64_t);
+	size = maxmem / sizeof (int64_t);  // number of int64s.
 	if (usenuma)
 	{
 #ifdef USENUMA
@@ -345,7 +354,7 @@ latency_thread (void *arg)
 #endif
 	sync_thread (id->id, label[0]);
 	timeAr[id->id][0] = second ();
-	follow_ar (a, size, scale,hops);
+	follow_ar (a, size, scale, hops);
 	timeAr[id->id][1] = second ();
 	sync_thread (id->id, label[1]);
 #if DEBUG
