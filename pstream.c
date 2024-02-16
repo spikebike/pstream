@@ -209,28 +209,32 @@ follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
 	int i;
 	int64_t base;
 #ifdef CNT
-	int64_t cnt;
-#endif
-#ifdef CNT
-			cnt=0;
+	int64_t cnt,pcnt;
 #endif
 	for (i = 0; i < repeat; i++)
 	{
+#ifdef CNT
+		cnt=0;
+#endif
 		base=0;
 		while (base<size) {
 			b=&a[base];  // start pointer chasing at begin of page
-			p=0;
+			p=b[0];
+#ifdef CNT
+			pcnt=0;
+			cnt++;
+			pcnt++;
+#endif		
 			while (p > 0)
 			{
 				p = b[p];
 #ifdef CNT
 				cnt++;
+				pcnt++;
 #endif		
-				if (p>size) { 
-					printf("warning p=%ld size=%ld\n",p,size);
-				}
 			}
 			base=base+hops;
+//			printf ("pcnt=%ld\n",pcnt);
 		}
 	}
 #ifdef CNT
@@ -265,7 +269,7 @@ printAr (int64_t *a, int64_t N, int64_t hops)
 	
 	lcnt=0;
  	max=0;
-   for (i = 0; i < N; i=i+16)
+   for (i = 0; i < N; i=i+perCacheLine)
    {
       if (i%hops==0) {
          printf("lcnt=%ld max=%ld\ni=%03ld  ",lcnt,max,i);
@@ -337,7 +341,7 @@ latency_thread (void *arg)
 	srand48 ((long int) getpid ());
    hops=(pageSize*numPages)/sizeof(int64_t);  // 512 per x86-64 4k page
 	base=0;
-   printf ("perCacheLine=%d cacheLineSize=%d size=%ld \n",perCacheLine, cacheLineSize, size);
+   printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
    while (base<size)
 	{
 		max=MIN(hops,size-base);
@@ -363,6 +367,7 @@ latency_thread (void *arg)
    {
 		max=MIN(hops,size-perCacheLine);
 		b=&a[base];
+      // leave the first hop alone, it loads the page and cacheline and we don't want to exit
 		for (i = 0; i < max; i = i + perCacheLine)
 		{
 			c = choose (i, max - perCacheLine);
@@ -383,8 +388,8 @@ latency_thread (void *arg)
 	follow_ar (a, size, scale, hops);
 	timeAr[id->id][1] = second ();
 	sync_thread (id->id, label[1]);
+//	printf ("synced numa=%d diff=%f\n", usenuma,timeAr[id->id][1]-timeAr[id->id][0]);
 #if DEBUG
-	printf ("synced numa=%d\n", usenuma);
 #endif
 /*	sync_thread (id, label[2]); */
 	if (usenuma)
@@ -534,7 +539,7 @@ latency_time (double *times, double *results, int64_t maxmem, int scale,
 	double lat, avgLat;
 
 	diff = times[0];
-	hops = (maxmem / cacheLineSize) - 1;
+	hops = (maxmem / cacheLineSize);
 	lat = 1.0e+9 * diff / (hops * cur_threads);
 	lat = lat / scale;
 	avgLat = 1.0e+9 * diff / hops / (int) scale;
@@ -901,8 +906,8 @@ main (int argc, char *argv[])
 			minMemory = atoi (optarg) * 1024;
 			break;
 		case 'M':
-//			maxMemory = (int64_t) atoi (optarg) * 1024 * 1024;  
-			maxMemory= 768*8;  // hack
+			maxMemory = (int64_t) atoi (optarg) * 1024 * 1024;  
+//			maxMemory= 256*1024; // hack
 			break;
 		case 'p':
 			numPages = atoi (optarg);
