@@ -218,15 +218,17 @@ follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
 	{
 		base=0;
 		while (base<size) {
-			b=&a[i];
-			p = b[0];
-            p = a[p];
+			b=&a[base];  // start pointer chasing at begin of page
+			p=0;
 			while (p > 0)
 			{
-				p = a[p];
+				p = b[p];
 #ifdef CNT
 				cnt++;
-#endif
+#endif		
+				if (p>size) { 
+					printf("warning p=%ld size=%ld\n",p,size);
+				}
 			}
 			base=base+hops;
 		}
@@ -259,23 +261,25 @@ void
 printAr (int64_t *a, int64_t N, int64_t hops)
 {
    int64_t i;
-	int64_t lcnt;
-//   int64_t *b;
-//	int64_t oldi;
-
-//	oldi=0;
+	int64_t lcnt,max;
+	
 	lcnt=0;
-	N=768;
+ 	max=0;
    for (i = 0; i < N; i=i+16)
    {
       if (i%hops==0) {
-         printf("lcnt=%ld\ni=%03ld  ",lcnt,i);
+         printf("lcnt=%ld max=%ld\ni=%03ld  ",lcnt,max,i);
 			lcnt=0;
+			max=0;
       }
       printf("%3ld=%03ld ",i%hops,a[i]);
+		if (a[i]>max) {
+			max=a[i];
+//         printf("newmax=%ld\n",max);
+		}
 		lcnt++;
    }
-   printf("lcnt=%ld\n",lcnt);
+   printf("lcnt=%ld max=%ld\n",lcnt,max);
 }
 
 void *
@@ -330,10 +334,10 @@ latency_thread (void *arg)
 	/* allocate the entire cache */
 /*	a = (int64_t *) align_pointer (aa, cacheSize, cacheLineSize, 1, 0); */
 	a = aa;
-   printf ("perCacheLine=%d cacheLineSize=%d\n",perCacheLine,cacheLineSize);
 	srand48 ((long int) getpid ());
    hops=(pageSize*numPages)/sizeof(int64_t);  // 512 per x86-64 4k page
 	base=0;
+   printf ("perCacheLine=%d cacheLineSize=%d size=%ld \n",perCacheLine, cacheLineSize, size);
    while (base<size)
 	{
 		max=MIN(hops,size-base);
@@ -347,10 +351,12 @@ latency_thread (void *arg)
 		base=base+hops;
 	}
 #if DEBUG
+	printf ("init finished size=%ld\n",size);
 	printAr (a, size, hops);
+	printf ("shuffle starting perCacheLine=%ld\n",perCacheLine);
 #endif
    i=0;
-// Sort the linear list so each cache line is visited randomly
+// Shuffle the linear list so each cache line is visited randomly
 	
 	base=0;
    while (base<size)
@@ -365,10 +371,12 @@ latency_thread (void *arg)
 			swap (b,i,c);
 			swap (b, x, y);
 		}
-		base=base+max;
+		base=base+hops;
    }
 #ifdef DEBUG
+	printf ("shuffle finished size=%ld\n",size);
 	printAr (a, size, hops);
+	printf ("starting pointer chasing\n");
 #endif
 	sync_thread (id->id, label[0]);
 	timeAr[id->id][0] = second ();
@@ -1026,13 +1034,8 @@ main (int argc, char *argv[])
 			for (i = 0; i < BENCHMARKS; i++)
 			{
 /*	printf ("max=%f min=%f\n",DBL_MAX,DBL_MIN); */
-#ifndef PGCC_BROKEN
 				min = DBL_MAX;
 				max = DBL_MIN;
-#else
-				min = 1.7976931348623157e+208;
-				max = 2.2250738585072014e-208;
-#endif
 
 				for (j = 0; j < cur_threads; j++)
 				{
@@ -1057,6 +1060,8 @@ main (int argc, char *argv[])
 /*	      printf ("cur=%d index=%d\n", cur_threads, log[cur_threads]); */
 			printf ("\n");
 			array_size = array_size * increaseArray;
+			//* does not make sense to benchmark a page with less then 2 cachelines
+			array_size = array_size - array_size%(2*cacheLineSize); 
 			num_array++;
 		}
 		cur_threads = cur_threads * 2;
