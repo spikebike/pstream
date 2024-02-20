@@ -227,22 +227,29 @@ verifyAr(int64_t * a, int64_t size, int64_t hops)
 	vbase=0;
 	while (base<size) {  // scan entire array
 		pcnt=0; // counting reference above
-		v[vbase]=pcnt;
 		b=&a[base];  // start pointer chasing at begin of page
 		p=b[0]; // the first access of the page
 		cnt++;
+		pcnt++;
+		v[vbase]=pcnt;
 		while (p)
 		{
 			p = b[p];
+			v[vbase+pcnt]=p/16;
 			cnt++;
 			pcnt++;
-			v[vbase+(p/16)]=pcnt;
 		}
-		if (pcnt != hops-1) { 
+		if (pcnt != hops) { 
 			printf ("failed to have correct hops at base=%ld\n",base);
 		}
 		base=base+hops*16;  // fix 4k / 8 bytes = 512
 		vbase=vbase+32;
+	}
+	printf ("\nfollow verify\n");
+	for (i=0;i<128;i++) //fix
+	{
+	    if (i%32==0) { printf("\nvbase=%04ld ", i); }
+		 printf ("%2d "	,v[i]);
 	}
 	base=0;
 	vbase=0;
@@ -256,13 +263,14 @@ verifyAr(int64_t * a, int64_t size, int64_t hops)
 		base=base+hops*16;
 		vbase=vbase+32;
 	}
+	printf ("\ngrid verify\n");
 
-	for (i=0;i<vsize;i++)
+	for (i=0;i<128;i++)
 	{
 	    if (i%32==0) { printf("\nvbase=%04ld ", i); }
 		 printf ("%2d "	,v[i]);
 	}
-	printf ("\ndone with verify cnt=%ld\n",cnt);
+	printf ("\ndone with grid verify cnt=%ld\n",cnt);
 	return(0);
 }
 
@@ -302,6 +310,7 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 				pcnt++;
 				track[p/16]++;
 #endif		
+				printf("d ptr=%p\n",(void *)&p[b]);
 			}
 			base=base+hops*16;  // fix 4k / 8 bytes = 512
 		}
@@ -461,11 +470,11 @@ latency_thread (void *arg)
 		base=base+hops*16;
    }
 	base=0;
-   while (base<size)
-	{
-		printf("2base=%ld value=%ld\n",base,a[base]);
-		base=base+hops*16;
-	}
+//   while (base<size)
+//	{
+//		printf("2base=%ld value=%ld\n",base,a[base]);
+//		base=base+hops*16;
+//	}
 	printf("\nstart verify\n");
 	verifyAr(a,size,hops);  
 //	printf ("shuffle finished size=%ld max=%ld\n",size,max);
