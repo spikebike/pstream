@@ -202,15 +202,18 @@ logint (int l /* 32-bit word to find the log base 2 of */ )
 }
 
 int
-follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
+followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 {
 	int64_t p = 0;
 	int64_t *b;
 	int i;
 	int64_t base;
 #ifdef CNT
-	int64_t cnt,pcnt;
+	int64_t cnt=0;
+	int64_t pcnt;
+   int track[32]; //fix
 #endif
+   printf ("Follow hops=%ld\n",hops);
 	for (i = 0; i < repeat; i++)
 	{
 #ifdef CNT
@@ -219,21 +222,26 @@ follow_ar (int64_t * a, int64_t size, int repeat, int64_t hops)
 		base=0;
 		while (base<size) {
 			b=&a[base];  // start pointer chasing at begin of page
+//			printf("%p\n",(void *)b);
 			p=b[0];
 #ifdef CNT
 			pcnt=0;
 			cnt++;
 			pcnt++;
+			for (i=0;i<32;i++) { track[i]=0; } //fix
 #endif		
-			while (p > 0)
+			while (p)
 			{
 				p = b[p];
 #ifdef CNT
 				cnt++;
 				pcnt++;
+				track[p/16]++;
 #endif		
 			}
-			base=base+hops;
+			base=base+512;  // fix 4k / 8 bytes = 512
+//	for (i=0;i<32;i++) { printf ("%d ",track[i]);}
+//	printf (" follow\n");
 //			printf ("pcnt=%ld\n",pcnt);
 		}
 	}
@@ -271,12 +279,12 @@ printAr (int64_t *a, int64_t N, int64_t hops)
  	max=0;
    for (i = 0; i < N; i=i+perCacheLine)
    {
-      if (i%hops==0) {
-         printf("lcnt=%ld max=%ld\ni=%03ld  ",lcnt,max,i);
+      if (i%512==0) {
+         printf("lcnt=%ld max=%ld\ni=%03ld",lcnt,max,i);
 			lcnt=0;
 			max=0;
       }
-      printf("%3ld=%03ld ",i%hops,a[i]);
+      printf("%3ld=%03ld ",i%512,a[i]);
 		if (a[i]>max) {
 			max=a[i];
 //         printf("newmax=%ld\n",max);
@@ -293,7 +301,7 @@ latency_thread (void *arg)
 	int64_t *a,*b;
 	int64_t *aa = NULL;
 	int64_t x, y;
-	int64_t i, c, max;
+	int64_t i, c, max =0;
 	int64_t size, len = 0;
    int64_t base,hops;
 
@@ -339,25 +347,32 @@ latency_thread (void *arg)
 /*	a = (int64_t *) align_pointer (aa, cacheSize, cacheLineSize, 1, 0); */
 	a = aa;
 	srand48 ((long int) getpid ());
-   hops=(pageSize*numPages)/sizeof(int64_t);  // 512 per x86-64 4k page
+   hops=(pageSize*numPages)/cacheLineSize; // 512 per x86-64 4k page
 	base=0;
    printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
    while (base<size)
 	{
 		max=MIN(hops,size-base);
-		b=&a[base];
-		for (i = 0; i < max; i = i + perCacheLine)
+//		printf("in lat max=%ld\n",max);
+		b=&a[base]; 
+   	int track[32];
+		for (i=0;i<32;i++) { track[i]=0; } //fix
+		for (i = 0; i < 512; i = i + perCacheLine) //fix
 		{
 			b[i] = i + perCacheLine;	/* assign each int the index of the next int */
+			track[i/16]++;
 		}
-//		printf ("i=%ld perCacheLine=%d\n",i,perCacheLine);
-		a[base+i-perCacheLine]=0;
-		base=base+hops;
+		b[i-16]=0;
+//		printf ("i=%ld perCacheLine=%d b[%ld]=%ld b=%p hops=%d\n",i,perCacheLine,i-16,b[i-16],(void *) &b[0],hops);
+//		for (i=0;i<32;i++) { printf ("%d ",track[i]);}
+//		printf ("\n");
+		base=base+hops*16;
 	}
+//	printAr (a, size, hops);
 #if DEBUG
 	printf ("init finished size=%ld\n",size);
-	printAr (a, size, hops);
-	printf ("shuffle starting perCacheLine=%ld\n",perCacheLine);
+//	printAr (a, size, hops);
+	printf ("shuffle starting perCacheLine=%ld hops=%d\n",perCacheLine,hops);
 #endif
    i=0;
 // Shuffle the linear list so each cache line is visited randomly
@@ -365,10 +380,10 @@ latency_thread (void *arg)
 	base=0;
    while (base<size)
    {
-		max=MIN(hops,size-perCacheLine);
+		max=MIN(hops*16,size-perCacheLine); //fix
 		b=&a[base];
       // leave the first hop alone, it loads the page and cacheline and we don't want to exit
-		for (i = 0; i < max; i = i + perCacheLine)
+		for (i = 0; i < 512; i = i + perCacheLine) //fix
 		{
 			c = choose (i, max - perCacheLine);
 			x = b[i];
@@ -376,16 +391,17 @@ latency_thread (void *arg)
 			swap (b,i,c);
 			swap (b, x, y);
 		}
-		base=base+hops;
+		base=base+hops*16;
    }
+  
+	printf ("shuffle finished size=%ld max=%ld\n",size,max);
+//	printAr (a, size, hops);
 #ifdef DEBUG
-	printf ("shuffle finished size=%ld\n",size);
-	printAr (a, size, hops);
 	printf ("starting pointer chasing\n");
 #endif
 	sync_thread (id->id, label[0]);
 	timeAr[id->id][0] = second ();
-	follow_ar (a, size, scale, hops);
+	followAr (a, size, scale, hops);
 	timeAr[id->id][1] = second ();
 	sync_thread (id->id, label[1]);
 //	printf ("synced numa=%d diff=%f\n", usenuma,timeAr[id->id][1]-timeAr[id->id][0]);
@@ -543,7 +559,7 @@ latency_time (double *times, double *results, int64_t maxmem, int scale,
 	lat = 1.0e+9 * diff / (hops * cur_threads);
 	lat = lat / scale;
 	avgLat = 1.0e+9 * diff / hops / (int) scale;
-	printf (" diff=%4.3f lat = %f avgLat = %f hops=%"PRIu64"", diff, lat,
+	printf (" diff=%6.5f lat = %f avgLat = %f hops=%"PRIu64"", diff, lat,
 			  avgLat, hops);
 	results[0] = lat;
 	results[1] = avgLat;

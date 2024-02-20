@@ -7,7 +7,7 @@
 #include <sys/ioctl.h>
 #include <math.h>
 
-#define N 8388608
+#define N 8388608*4
 
 int main() {
     int64_t *data; // Our array
@@ -19,11 +19,22 @@ int main() {
     // Set up perf_event_attr structure
     struct perf_event_attr pe;
     memset(&pe, 0, sizeof(struct perf_event_attr));
-    pe.type = PERF_TYPE_HW_CACHE;
-    pe.config = PERF_COUNT_HW_CACHE_LL | 
+ //   pe.type = PERF_TYPE_HW_CACHE;
+//    pe.config = PERF_COUNT_HW_CACHE_LL | 
 //				( PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | 
-				( PERF_COUNT_HW_CACHE_OP_READ << 8) | 
-				(PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
+//				( PERF_COUNT_HW_CACHE_OP_READ << 8) | 
+//				(PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
+//	pe.type = PERF_TYPE_HARDWARE,
+//	pe.config = PERF_COUNT_HW_CACHE_MISSES;
+
+     pe.type = PERF_TYPE_HW_CACHE;
+     pe.size = sizeof(struct perf_event_attr);
+ pe.config = (PERF_COUNT_HW_CACHE_L1D  |
+                 (PERF_COUNT_HW_CACHE_OP_READ << 8) |
+                 (PERF_COUNT_HW_CACHE_RESULT_MISS << 16));
+ pe.ext1 = (PERF_MEM_LVL_L3 | PERF_MEM_OP_LOAD) << 8;
+
+
     pe.size = sizeof(struct perf_event_attr);
     pe.disabled = 1;
     pe.exclude_kernel = 1;
@@ -46,8 +57,8 @@ int main() {
     ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
 	 sum=0;
 //	 int j;
-//	for (int i = N; i >  0; i--) {
-	for (int i = 0; i < N; i=i+8) {
+	for (int i = N; i >  0; i--) {
+//	for (int i = 0; i < N; i=i+1) {
 		sum=sum+data[i];
 	}
     printf("sum=%ld\n",sum);
