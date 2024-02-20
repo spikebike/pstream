@@ -42,7 +42,7 @@
  and type of ram) to bill@cse.ucdavis.edu
 */
 
-#define REPEAT 1
+#define REPEAT 5 
 #define BENCHMARKS 2
 #define MAX_THREADS 244
 #define MAX_ITER 256
@@ -213,22 +213,19 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 	int64_t pcnt;
    int track[32]; //fix
 #endif
-   printf ("Follow hops=%ld\n",hops);
-	for (i = 0; i < repeat; i++)
-	{
 #ifdef CNT
 		cnt=0;
 #endif
+	for (i = 0; i < repeat; i++)
+	{
 		base=0;
 		while (base<size) {
 			b=&a[base];  // start pointer chasing at begin of page
-//			printf("%p\n",(void *)b);
 			p=b[0];
 #ifdef CNT
 			pcnt=0;
 			cnt++;
 			pcnt++;
-			for (i=0;i<32;i++) { track[i]=0; } //fix
 #endif		
 			while (p)
 			{
@@ -239,10 +236,7 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 				track[p/16]++;
 #endif		
 			}
-			base=base+512;  // fix 4k / 8 bytes = 512
-//	for (i=0;i<32;i++) { printf ("%d ",track[i]);}
-//	printf (" follow\n");
-//			printf ("pcnt=%ld\n",pcnt);
+			base=base+hops*16;  // fix 4k / 8 bytes = 512
 		}
 	}
 #ifdef CNT
@@ -370,9 +364,9 @@ latency_thread (void *arg)
 	}
 //	printAr (a, size, hops);
 #if DEBUG
-	printf ("init finished size=%ld\n",size);
+//	printf ("init finished size=%ld\n",size);
 //	printAr (a, size, hops);
-	printf ("shuffle starting perCacheLine=%ld hops=%d\n",perCacheLine,hops);
+//	printf ("shuffle starting perCacheLine=%ld hops=%d\n",perCacheLine,hops);
 #endif
    i=0;
 // Shuffle the linear list so each cache line is visited randomly
@@ -394,7 +388,7 @@ latency_thread (void *arg)
 		base=base+hops*16;
    }
   
-	printf ("shuffle finished size=%ld max=%ld\n",size,max);
+//	printf ("shuffle finished size=%ld max=%ld\n",size,max);
 //	printAr (a, size, hops);
 #ifdef DEBUG
 	printf ("starting pointer chasing\n");
@@ -1082,7 +1076,8 @@ main (int argc, char *argv[])
 			printf ("\n");
 			array_size = array_size * increaseArray;
 			//* does not make sense to benchmark a page with less then 2 cachelines
-			array_size = array_size - array_size%(2*cacheLineSize); 
+			array_size = array_size - array_size%((pageSize*numPages)/sizeof(int64_t));
+//			printf("Array_size=%ld pagesize=%ld\n",array_size,array_size%512);
 			num_array++;
 		}
 		cur_threads = cur_threads * 2;
