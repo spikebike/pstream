@@ -200,6 +200,50 @@ logint (int l /* 32-bit word to find the log base 2 of */ )
 	}
 	return (r);
 }
+int
+verifyAr(int64_t * a, int64_t size, int64_t hops)
+{
+	int64_t base,cnt,pcnt,p,vsize,i;
+	int64_t *b;
+	int *v;
+
+	vsize=(sizeof(int64_t)*size)/16;
+
+	v=malloc(sizeof(int64_t)*vsize);
+	for (i=0;i<vsize;i++) {
+		v[i]=0;
+	}
+	base=0;
+	cnt=0;
+	while (base<size) {  // scan entire array
+		b=&a[base];  // start pointer chasing at begin of page
+		p=b[0];
+		pcnt=1; // counting reference above
+		cnt++;
+		v[base]=p;
+		while (p)
+		{
+			p = b[p];
+			v[base+p]=pcnt%hops;
+			cnt++;
+			pcnt++;
+		}
+		if (pcnt != hops) { 
+			printf ("failed to have correct hops at base=%ld\n",base);
+		}
+		base=base+hops*16;  // fix 4k / 8 bytes = 512
+	}
+
+	for (i=0;i<vsize;i=i+16)
+	{
+	    if (i%512==0) { printf("\nbase=%04ld ", i); }
+		 printf ("%2d "	,v[i]);
+	}
+	printf ("\ndone with verify cnt=%ld\n",cnt);
+	return(0);
+}
+
+
 
 int
 followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
@@ -350,7 +394,6 @@ latency_thread (void *arg)
 //		printf("in lat max=%ld\n",max);
 		b=&a[base]; 
    	int track[32];
-		for (i=0;i<32;i++) { track[i]=0; } //fix
 		for (i = 0; i < 512; i = i + perCacheLine) //fix
 		{
 			b[i] = i + perCacheLine;	/* assign each int the index of the next int */
@@ -368,8 +411,8 @@ latency_thread (void *arg)
 //	printAr (a, size, hops);
 //	printf ("shuffle starting perCacheLine=%ld hops=%d\n",perCacheLine,hops);
 #endif
-   i=0;
 // Shuffle the linear list so each cache line is visited randomly
+	verifyAr(a,size,hops);  
 	
 	base=0;
    while (base<size)
@@ -387,7 +430,7 @@ latency_thread (void *arg)
 		}
 		base=base+hops*16;
    }
-  
+	verifyAr(a,size,hops);  
 //	printf ("shuffle finished size=%ld max=%ld\n",size,max);
 //	printAr (a, size, hops);
 #ifdef DEBUG
