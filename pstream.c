@@ -203,40 +203,63 @@ logint (int l /* 32-bit word to find the log base 2 of */ )
 int
 verifyAr(int64_t * a, int64_t size, int64_t hops)
 {
-	int64_t base,cnt,pcnt,p,vsize,i;
+	int64_t base,vbase,cnt,pcnt,p,vsize,i;
 	int64_t *b;
 	int *v;
 
-	vsize=(sizeof(int64_t)*size)/16;
+	vsize=(sizeof(int64_t)*size)/16; // skip the useless zero entries
 
 	v=malloc(sizeof(int64_t)*vsize);
 	for (i=0;i<vsize;i++) {
 		v[i]=0;
 	}
 	base=0;
+	for (i=0;i<2048; i=i+16) { 
+		if (i%512 ==0) { 
+			printf("\nbase=%04ld ",i/512); 
+		}
+		printf("%ld ",a[base+i]); 
+	}
+	printf ("\n");
+	printf("\nstart verify hops=%ld\n",hops);
+	base=0;
 	cnt=0;
+	vbase=0;
 	while (base<size) {  // scan entire array
+		pcnt=0; // counting reference above
+		v[vbase]=pcnt;
 		b=&a[base];  // start pointer chasing at begin of page
-		p=b[0];
-		pcnt=1; // counting reference above
+		p=b[0]; // the first access of the page
 		cnt++;
-		v[base]=p;
 		while (p)
 		{
 			p = b[p];
-			v[base+p]=pcnt%hops;
 			cnt++;
 			pcnt++;
+			v[vbase+(p/16)]=pcnt;
 		}
-		if (pcnt != hops) { 
+		if (pcnt != hops-1) { 
 			printf ("failed to have correct hops at base=%ld\n",base);
 		}
 		base=base+hops*16;  // fix 4k / 8 bytes = 512
+		vbase=vbase+32;
+	}
+	base=0;
+	vbase=0;
+  	while (base<size)
+   {
+      b=&a[base];
+      for (i = 0; i < 512; i = i + perCacheLine) //fix
+      {
+         v[vbase+i/16]=b[i]/16;
+      }
+		base=base+hops*16;
+		vbase=vbase+32;
 	}
 
-	for (i=0;i<vsize;i=i+16)
+	for (i=0;i<vsize;i++)
 	{
-	    if (i%512==0) { printf("\nbase=%04ld ", i); }
+	    if (i%32==0) { printf("\nvbase=%04ld ", i); }
 		 printf ("%2d "	,v[i]);
 	}
 	printf ("\ndone with verify cnt=%ld\n",cnt);
@@ -405,6 +428,13 @@ latency_thread (void *arg)
 //		printf ("\n");
 		base=base+hops*16;
 	}
+//	base=0;
+ //  while (base<size)
+//	{
+//		printf("after init base=%ld value=%ld\n",base,a[base]);
+//		base=base+hops*16;
+//	}
+//	printf("\n");
 //	printAr (a, size, hops);
 #if DEBUG
 //	printf ("init finished size=%ld\n",size);
@@ -430,6 +460,13 @@ latency_thread (void *arg)
 		}
 		base=base+hops*16;
    }
+	base=0;
+   while (base<size)
+	{
+		printf("2base=%ld value=%ld\n",base,a[base]);
+		base=base+hops*16;
+	}
+	printf("\nstart verify\n");
 	verifyAr(a,size,hops);  
 //	printf ("shuffle finished size=%ld max=%ld\n",size,max);
 //	printAr (a, size, hops);
