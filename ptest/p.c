@@ -167,12 +167,13 @@ main (int argc, char *argv[])
 
 	size = maxmem / sizeof (int64_t);  // number of int64s.
 
-	if (posix_memalign((void **)&a, getpagesize(), sizeof(int64_t) * maxmem) != 0) {
+/*	if (posix_memalign((void **)&a, getpagesize(), sizeof(int64_t) * maxmem) != 0) {
 		printf ("Memory allocation failed\n");
 		exit(-1);
 	} else { 
 		printf ("Allocated %ld bytes or %ld INT64s succeeded.\n",maxmem,size);
-	}
+	} */
+	a=malloc(maxmem);
 	
 	ret=initAr(a,size);
 	printf("Initialized %ld cachelines\n",ret);
