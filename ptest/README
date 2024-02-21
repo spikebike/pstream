@@ -6,18 +6,63 @@ is picked to help ensure the array visited (even if only half the cachelines)
 is well bigger than L3.
 
 This benchmark is intended to visit each cacheline exactly once.  To verify:
+
 1) uncomment the two printf("ptr=%p\n",(void *)&p[b]); in followAr()
+
 2) run:
 	gcc -O3 -Wall -pedantic p.c && ./a.out  | grep "ptr=" | wc -l
+
 3) verify that you see "8388608" which is 1GB / 128 byte cachlines
+
 4) run:
 	gcc -O3 -Wall -pedantic p.c && ./a.out  | grep "ptr=" | sort | uniq > log
 	wc -l log
+
 5) verify that it says 8388608, this indicates that there were exactly that number of unique addresses visited (no cache friendly repeats).
+
 6) run:
-	go run hexdiff.go log  | uniq # or perl, but it takes 5+ minutes
+	go run hexdiff.go log  | uniq # or perl, but go takes 5 seconds and perl takes 6+ minutes
+
 7) verify that the output is a single line of "Difference: 128", this shows
    that all 8388608 were exactly 128 bytes apart.
+
+So in summary:
+	* this code visits 8M unique
+	* when printed each 8M address is unique
+	* each address is in a single cacheline (no cacheline load can load 2 addresses)
+	* the code is single threaded and each load is dependent on the previous
+	* this happens on a Ryzen 7900 at 10ns per load.
+
+Example run:
+
+	$ gcc -O3 -Wall -pedantic p.c && ./a.out
+	Allocated 1073741824 bytes or 134217728 INT64s succeeded.
+	cacheLinesPerPage=32
+	Initialized 8388608 cachelines
+	Shuffle completed
+	Shuffle succeded
+	visited 8388608 cachelines
+	took 0.0834441 seconds, 9.947314 ns per cachelineA
+
+This program allocates a 1GB array than for each page (512 INT64s) it builds an array with:
+
+	for (i = 0; i < pageSize/sizeof(int64_t); i = i + perCacheLine)
+   {
+		b[i] = i + perCacheLine;   /* assign each int the index of the next int */
+		cnt++;
+	}
+
+So the beginning of each cacheline has the index of the array member of the next cache line, if printed:
+base=0000 16 32 48 64 80 96 112 128 144 160 176 192 208 224 240 256 272 288 304 320 336 352 368 384 400 416 432 448 464 480 496 0 
+base=0016 16 32 48 64 80 96 112 128 144 160 176 192 208 224 240 256 272 288 304 320 336 352 368 384 400 416 432 448 464 480 496 0 
+
+So you can walk that page with a simple: while (p) { p = b[p]; } 
+
+To prevent prefetching I randomize it with a sort, so the above becomes:
+base=0000 48 464 416 144 400 288 272 240 320 256 16 128 496 112 160 304 448 64 32 0 368 384 336 432 480 192 96 80 176 208 224 352 
+base=0016 448 256 48 224 416 64 112 336 384 16 96 480 288 240 208 272 32 160 432 368 144 0 304 80 192 464 320 400 176 352 496 128 
+
+So each cacheline of a page is loaded randomly, then it proceeds to the next page.
 
 
 	

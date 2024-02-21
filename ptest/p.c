@@ -124,11 +124,12 @@ followAr (int64_t * a, int64_t size, int repeat)
 			b=&a[base];  // start pointer chasing at begin of page
 			p=b[0];
 			cnt++;
-			printf("%p\n",(void *)&p[b]);
+//  uncomment to debug addresses
+//			printf("%p\n",(void *)&p[b]);
 			while (p)
 			{
 				p = b[p];
-				printf("%p\n",(void *)&p[b]);
+//				printf("%p\n",(void *)&p[b]);
 				cnt++;
 			}
 			base=base+pageSize/sizeof(int64_t);
@@ -140,9 +141,10 @@ followAr (int64_t * a, int64_t size, int repeat)
 int
 verifyAr(int64_t * a, int64_t size)
 {
-	for (int64_t i=0;i<2048; i=i+perCacheLine) { 
+	printf ("perCacheline=%d\n",perCacheLine);
+	for (int64_t i=0;i<4096; i=i+perCacheLine) { 
       if (i%(pageSize/sizeof(int64_t)) ==0) { 
-         printf("\nbase=%04ld ",i/cacheLinesPerPage);
+         printf("\nbase=%04ld ",i/perCacheLine);
       }
       printf("%ld ",a[i]); 
    }
@@ -172,15 +174,14 @@ main (int argc, char *argv[])
 	
 	ret=initAr(a,size);
 	printf("Initialized %ld cachelines\n",ret);
-//	ret=verifyAr(a,size);
+	ret=verifyAr(a,size);
 	ret=shuffleAr(a,size);
-	printf("Shuffle completed\n");
-//	ret=verifyAr(a,size);
+	ret=verifyAr(a,size);
 	if (!ret) { printf ("Shuffle succeded\n"); } else { printf ("shuffle failed\n"); }
 	start = second ();
 	ret=followAr (a, size, 1);
 	end = second();
 	printf("visited %ld cachelines\n",ret);
-	printf ("took %8.7f seconds, %f ns\n",end-start,((end-start)/ret)*1000000000 );
+	printf ("took %f seconds, %f ns per cacheline\n",end-start,((end-start)/ret)*1000000000 );
 }
 
