@@ -21,14 +21,11 @@
 #include <numa.h>
 #endif
 
-/* Pstream version 1.11 - written by Bill Broadley bill@cse.ucdavis.edu
+/* Pstream version 1.99 - written by Bill Broadley bill@broadley.org 
 
  Designed to expose and quantify parallelism in the memory hierarchy 
  by tracking the performance of varying number of threads over varying
  size arrays of doubles.
-
- Very loosely based on John D. McCalpin's Stream: 
-			http://www.cs.virginia.edu/stream/
 
  to compile, on solaris or alpha/digital unix add -lrt:
     gcc -D_REENTRANT -Wall -pedantic -O4 pstream.c -lpthread -o pstream
@@ -37,12 +34,11 @@
  to view:
     ./view output_file
 
-
  Please send results, and machine config (number and type of cpu's, amount
- and type of ram) to bill@cse.ucdavis.edu
+ and type of ram) to bill@broadley.org
 */
 
-#define REPEAT 5 
+#define REPEAT 1 
 #define BENCHMARKS 2
 #define MAX_THREADS 244
 #define MAX_ITER 256
@@ -69,7 +65,6 @@ int affinity = 0;
 int affinity_wide = 0;
 int usenuma = 0;
 int pageSize = 4096;
-int numPages = 1;
 int perCacheLine;
 int cacheLinesPerPage;
 long int cur_threads;
@@ -123,7 +118,7 @@ align_pointer (int64_t * a1, uint64_t cacheSize, int cacheLineSize, int share,
 	}
 /*	printf ("cacheSize=%d cacheLineSize=%d\n",cacheSize,cacheLineSize); */
 /*	printf ("rank=%d share=%d\n",rank,share);
-	printf ("linesInCache=%d offset=%d\n",linesInCache,offset);*/
+	printf ("linesInCache=%d offset=%d pagesize=%d\n",linesInCache,offset,pageSize);*/
 /*	printf ("a2=%" PRIu64 " \n", a2 % cacheSize); */
 	return ((int64_t *) a2);
 }
@@ -286,7 +281,6 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 #ifdef CNT
 	int64_t cnt=0;
 	int64_t pcnt;
-   int track[32]; //fix
 #endif
 #ifdef CNT
 		cnt=0;
@@ -297,6 +291,7 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 		while (base<size) {
 			b=&a[base];  // start pointer chasing at begin of page
 			p=b[0];
+//			printf("%p\n",(void *)&p[b]);
 #ifdef CNT
 			pcnt=0;
 			cnt++;
@@ -308,11 +303,10 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 #ifdef CNT
 				cnt++;
 				pcnt++;
-				track[p/16]++;
 #endif		
-				printf("d ptr=%p\n",(void *)&p[b]);
+//				printf("%p\n",(void *)&p[b]);
 			}
-			base=base+hops*16;  // fix 4k / 8 bytes = 512
+			base=base+hops*cacheLineSize;  // fix 4k / 8 bytes = 512
 		}
 	}
 #ifdef CNT
@@ -417,7 +411,7 @@ latency_thread (void *arg)
 /*	a = (int64_t *) align_pointer (aa, cacheSize, cacheLineSize, 1, 0); */
 	a = aa;
 	srand48 ((long int) getpid ());
-   hops=(pageSize*numPages)/cacheLineSize; // 512 per x86-64 4k page
+   hops=pageSize/cacheLineSize; // 512 per x86-64 4k page
 	base=0;
    printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
    while (base<size)
@@ -425,16 +419,12 @@ latency_thread (void *arg)
 		max=MIN(hops,size-base);
 //		printf("in lat max=%ld\n",max);
 		b=&a[base]; 
-   	int track[32];
 		for (i = 0; i < 512; i = i + perCacheLine) //fix
 		{
 			b[i] = i + perCacheLine;	/* assign each int the index of the next int */
-			track[i/16]++;
 		}
 		b[i-16]=0;
 //		printf ("i=%ld perCacheLine=%d b[%ld]=%ld b=%p hops=%d\n",i,perCacheLine,i-16,b[i-16],(void *) &b[0],hops);
-//		for (i=0;i<32;i++) { printf ("%d ",track[i]);}
-//		printf ("\n");
 		base=base+hops*16;
 	}
 //	base=0;
@@ -451,7 +441,7 @@ latency_thread (void *arg)
 //	printf ("shuffle starting perCacheLine=%ld hops=%d\n",perCacheLine,hops);
 #endif
 // Shuffle the linear list so each cache line is visited randomly
-	verifyAr(a,size,hops);  
+//	verifyAr(a,size,hops);  
 	
 	base=0;
    while (base<size)
@@ -475,8 +465,8 @@ latency_thread (void *arg)
 //		printf("2base=%ld value=%ld\n",base,a[base]);
 //		base=base+hops*16;
 //	}
-	printf("\nstart verify\n");
-	verifyAr(a,size,hops);  
+//	printf("\nstart verify\n");
+//	verifyAr(a,size,hops);  
 //	printf ("shuffle finished size=%ld max=%ld\n",size,max);
 //	printAr (a, size, hops);
 #ifdef DEBUG
@@ -589,7 +579,6 @@ print_bandwidth (char *str, struct idThreadParams id)
 				" cacheLineSize=%d\n", increaseArray, timeStep, cacheSize,
 				cacheLineSize);
 	fprintf (fp, "#affinity=%d affinity_wide=%d\n", affinity, affinity_wide);
-	fprintf (fp, "#numPages=%d\n", numPages);
 
 	while (array_size >= minMemory / sizeof (double))
 	{
@@ -1009,7 +998,7 @@ main (int argc, char *argv[])
 //			maxMemory= 256*1024; // hack
 			break;
 		case 'p':
-			numPages = atoi (optarg);
+			pageSize = atoi (optarg);
 			break;
 		case 'i':
 			increaseArray = atof (optarg) / 100.0;
@@ -1051,7 +1040,7 @@ main (int argc, char *argv[])
 		}
 	}
 	perCacheLine = cacheLineSize / sizeof(int64_t);
-	cacheLinesPerPage = (pageSize*numPages)/sizeof(int64_t);
+	cacheLinesPerPage = (pageSize)/sizeof(int64_t);
 	if (logfile == NULL)
 	{
 		printf ("You must specify a log file with -f\n");
@@ -1070,7 +1059,7 @@ main (int argc, char *argv[])
 			  " cacheLineSize=%d\n", increaseArray, timeStep, cacheSize,
 			  cacheLineSize);
 	printf ("affinity=%d affinity_wide=%d shared=%d\n", affinity, affinity_wide,shared_cache);
-	printf ("usenuma=%d numPages=%d\n", usenuma, numPages);
+	printf ("usenuma=%d pageSize=%d\n", usenuma, pageSize);
  	fp = fopen (logfile, "w");
    if (fp == NULL) {
     printf("Error opening file: %s\n",logfile);
@@ -1165,7 +1154,7 @@ main (int argc, char *argv[])
 			printf ("\n");
 			array_size = array_size * increaseArray;
 			//* does not make sense to benchmark a page with less then 2 cachelines
-			array_size = array_size - array_size%((pageSize*numPages)/sizeof(int64_t));
+			array_size = array_size - array_size%((pageSize)/sizeof(int64_t));
 //			printf("Array_size=%ld pagesize=%ld\n",array_size,array_size%512);
 			num_array++;
 		}
