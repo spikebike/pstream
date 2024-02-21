@@ -1,0 +1,26 @@
+This benchmark p.c is a very simple version of pstream with cacheline=128
+and array size =1GB hard coded.  This simplification is to aid in auditing.
+
+Cacheline=128 is to prevent adjacent cacheline prefetching from helping.  1GB
+is picked to help ensure the array visited (even if only half the cachelines)
+is well bigger than L3.
+
+This benchmark is intended to visit each cacheline exactly once.  To verify:
+1) uncomment the two printf("ptr=%p\n",(void *)&p[b]); in followAr()
+2) run:
+	gcc -O3 -Wall -pedantic p.c && ./a.out  | grep "ptr=" | wc -l
+3) verify that you see "8388608" which is 1GB / 128 byte cachlines
+4) run:
+	gcc -O3 -Wall -pedantic p.c && ./a.out  | grep "ptr=" | sort | uniq > log
+	wc -l log
+5) verify that it says 8388608, this indicates that there were exactly that number of unique addresses visited (no cache friendly repeats).
+6) run:
+	go run hexdiff.go log  | uniq # or perl, but it takes 5+ minutes
+7) verify that the output is a single line of "Difference: 128", this shows
+   that all 8388608 were exactly 128 bytes apart.
+
+
+	
+
+
+
