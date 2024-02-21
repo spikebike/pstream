@@ -64,6 +64,8 @@ base=0016 448 256 48 224 416 64 112 336 384 16 96 480 288 240 208 272 32 160 432
 
 So each cacheline of a page is loaded randomly, then it proceeds to the next page.
 
+To see how the array is setup pre and post shuffle uncomment the verifyAr() in main.
+
 
 	
 
