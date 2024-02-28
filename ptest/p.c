@@ -115,10 +115,10 @@ followAr (int64_t * a, int64_t size, int repeat)
 	int64_t *b;
 	int64_t base;
 	int64_t cnt;
-	int64_t sum;
+//	int64_t sum;
 
 	cnt=0;
-	sum=0;
+//	sum=0;
 	for (int64_t i = 0; i < repeat; i++)
 	{
 		base=0;
@@ -167,13 +167,12 @@ main (int argc, char *argv[])
 
 	size = maxmem / sizeof (int64_t);  // number of int64s.
 
-/*	if (posix_memalign((void **)&a, getpagesize(), sizeof(int64_t) * maxmem) != 0) {
+	if (posix_memalign((void **)&a, getpagesize(), sizeof(int64_t) * maxmem) != 0) {
 		printf ("Memory allocation failed\n");
 		exit(-1);
 	} else { 
 		printf ("Allocated %ld bytes or %ld INT64s succeeded.\n",maxmem,size);
-	} */
-	a=malloc(maxmem);
+	} 
 	
 	ret=initAr(a,size);
 	printf("Initialized %ld cachelines\n",ret);
@@ -185,7 +184,7 @@ main (int argc, char *argv[])
 	ret=followAr (a, size, 1);
 	end = second();
 	printf("visited %ld cachelines\n",ret);
-	ret=8388608;
+//	ret=8388608;
 	printf ("took %f seconds, %f ns per cacheline\n",end-start,((end-start)/ret)*1000000000 );
 }
 

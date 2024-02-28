@@ -147,36 +147,6 @@ sync_thread (int id, char *label)
 	return (NULL);
 }
 
-void
-swap (int64_t * a, int64_t x, int64_t y)
-{
-	int64_t t;
-	t = a[x];
-	a[x] = a[y];
-	a[y] = t;
-}
-
-/* choose between l and h, inclusive of both. */
-uint64_t
-choose (uint64_t l, uint64_t h)
-{
-	uint64_t range, smallr, ret;
-
-	range = h - l;
-	assert (l <= h);
-	smallr = range / perCacheLine;	/* the number of cachelines in
-												   the range */
-	/* pick a cache line within the range */
-	ret = (l + (uint64_t) (drand48 () * smallr) * perCacheLine);
-/*  printf ("l=%lld h=%lld ret=%lld\n",l,h,ret);  */
-	assert (ret <= h);
-	if (l < h)
-		return ret;
-	return h;
-}
-
-
-
 int
 logint (int l /* 32-bit word to find the log base 2 of */ )
 {
@@ -358,6 +328,90 @@ printAr (int64_t *a, int64_t N, int64_t hops)
    printf("lcnt=%ld max=%ld\n",lcnt,max);
 }
 
+int64_t
+initAr(int64_t *a,int64_t size)
+{  
+   int64_t base,i;
+   int64_t *b;
+   int64_t cnt;
+
+   base=0;
+   cnt=0;
+   printf ("cacheLinesPerPage=%d cacheLineSize=%d\n",cacheLinesPerPage,cacheLineSize);
+   while (base<size)
+   {
+      b=&a[base];
+      for (i = 0; i < (int64_t)(pageSize/sizeof(int64_t)); i = i + perCacheLine)
+      {
+         b[i] = i;   /* assign each int the index of the next int */
+         cnt++;
+      }
+//    b[i-cacheLineSize/sizeof(int64_t)]=0;
+      base=base+pageSize/sizeof(int64_t);
+   }
+   return(cnt);
+}  
+
+shuffleAr(int64_t *a, int64_t size, int64_t **visitOrder)
+{
+   int64_t base;
+   int64_t *b;
+   int64_t followPages;
+
+   srand48 ((long int) getpid ());
+   base=0;
+   while (base<size)
+   {
+      b=&a[base];
+      int64_t iter=(int64_t)(pageSize/sizeof(int64_t));
+      while (iter > perCacheLine ) {
+         iter -= perCacheLine ;
+         int64_t j = ((int64_t)lrand48() % (iter / perCacheLine)) * perCacheLine;
+         int64_t tmp = b[iter];
+         b[iter] = b[j];
+         b[j] = tmp;
+      }
+      base=base+pageSize/sizeof(int64_t);
+   }
+   printf ("Done with Shuffle\n");
+   followPages = size / (pageSize/sizeof(int64_t));
+   *visitOrder = (int64_t*)malloc(sizeof(int64_t)*followPages);
+   if (!visitOrder) {
+      printf ("Malloc of visitOrder failed\n");
+      exit(-1);
+   }
+   //
+   // We shuffle the pages to try to prevent prefetch from hiding latency.
+   // 
+   // If you visit all 64 cache lines of a 4k page, randomly, with dependent loads, it looks
+   // quite a bit like a per cache line load with a stride of 4k.
+   //
+   // Ideas welcome to fixing this, while not thrashing the TLB, welcome.
+   //
+   // Init the page order to squentially visit each page
+   for (int64_t i=0; i<followPages; i++)
+   {
+      (*visitOrder)[i]=i;
+   }
+#ifdef RANDOM
+   // Randomize it to prevent page N+1 prefection while accessing every cacheline of N
+   for (int64_t  i = followPages - 1; i > 0; i--) {
+        // Pick a random index from 0 to i
+        int j = rand() % (i + 1);
+
+        // Swap a[i] with a[j]
+        int temp = (*visitOrder)[i];
+        (*visitOrder)[i] = (*visitOrder)[j];
+        (*visitOrder)[j] = temp;
+   }
+   printf ("Pages randomized, ");
+#endif
+   return(0);
+}
+
+
+
+
 void *
 latency_thread (void *arg)
 {
@@ -414,61 +468,13 @@ latency_thread (void *arg)
    hops=pageSize/cacheLineSize; // 512 per x86-64 4k page
 	base=0;
    printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
-   while (base<size)
-	{
-		max=MIN(hops,size-base);
-//		printf("in lat max=%ld\n",max);
-		b=&a[base]; 
-		for (i = 0; i < 512; i = i + perCacheLine) //fix
-		{
-			b[i] = i + perCacheLine;	/* assign each int the index of the next int */
-		}
-		b[i-16]=0;
-//		printf ("i=%ld perCacheLine=%d b[%ld]=%ld b=%p hops=%d\n",i,perCacheLine,i-16,b[i-16],(void *) &b[0],hops);
-		base=base+hops*16;
-	}
-//	base=0;
- //  while (base<size)
-//	{
-//		printf("after init base=%ld value=%ld\n",base,a[base]);
-//		base=base+hops*16;
-//	}
-//	printf("\n");
-//	printAr (a, size, hops);
-#if DEBUG
-//	printf ("init finished size=%ld\n",size);
-//	printAr (a, size, hops);
-//	printf ("shuffle starting perCacheLine=%ld hops=%d\n",perCacheLine,hops);
-#endif
-// Shuffle the linear list so each cache line is visited randomly
-//	verifyAr(a,size,hops);  
+
+	ret=initAr(a,size);
+   printf("Initialized %ld cachelines\n",ret);
+
+   ret=shuffleAr(a,size,&visitOrder);
+   if (!ret) { printf ("Shuffle succeded\n"); } else { printf ("shuffle failed\n"); }
 	
-	base=0;
-   while (base<size)
-   {
-		max=MIN(hops*16,size-perCacheLine); //fix
-		b=&a[base];
-      // leave the first hop alone, it loads the page and cacheline and we don't want to exit
-		for (i = 0; i < 512; i = i + perCacheLine) //fix
-		{
-			c = choose (i, max - perCacheLine);
-			x = b[i];
-			y = b[c];
-			swap (b,i,c);
-			swap (b, x, y);
-		}
-		base=base+hops*16;
-   }
-	base=0;
-//   while (base<size)
-//	{
-//		printf("2base=%ld value=%ld\n",base,a[base]);
-//		base=base+hops*16;
-//	}
-//	printf("\nstart verify\n");
-//	verifyAr(a,size,hops);  
-//	printf ("shuffle finished size=%ld max=%ld\n",size,max);
-//	printAr (a, size, hops);
 #ifdef DEBUG
 	printf ("starting pointer chasing\n");
 #endif
