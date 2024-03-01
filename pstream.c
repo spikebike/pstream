@@ -432,7 +432,7 @@ latency_thread (void *arg)
 	{
 #ifdef USENUMA
 		numa_run_on_node (id->id % id->maxThreads);
-		aa =
+		a =
 			numa_alloc_local (size * sizeof (int64_t) + 2 * cacheSize +
 									2 * cacheLineSize);
 #endif
@@ -442,9 +442,9 @@ latency_thread (void *arg)
 		len = (size * sizeof (uint64_t) + 2 * cacheSize + 2 * cacheLineSize);
 #ifdef USEHUGE
 		len = (len + 2097151) & ~2097151;
-		aa = mmap (0, len, PROT_READ | PROT_WRITE,
+		a = mmap (0, len, PROT_READ | PROT_WRITE,
 					  MAP_ANONYMOUS | MAP_PRIVATE | MAP_HUGETLB, -1, 0);
-		if (aa == MAP_FAILED)
+		if (a == MAP_FAILED)
 		{
 			printf ("Warning memory allocation of %" PRIu64 " MB array failed\n",
 					  len/ (1024 * 1024));
@@ -462,8 +462,6 @@ latency_thread (void *arg)
 #endif
 	}
 	/* allocate the entire cache */
-/*	a = (int64_t *) align_pointer (aa, cacheSize, cacheLineSize, 1, 0); */
-	a = aa;
 	srand48 ((long int) getpid ());
    hops=pageSize/cacheLineSize; // 512 per x86-64 4k page
 #ifdef DEBUG
