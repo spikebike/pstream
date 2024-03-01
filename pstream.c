@@ -54,7 +54,7 @@ double timeAr[MAX_THREADS][BENCHMARKS * 2];
 
 static int shared_cache = 0;
 int minMemory = 500 * 1024 * 1024;
-int64_t maxMemory = 1024 * 1024 * 1024; // 2GB
+int64_t maxMemory = 1024 * 1024 * 1024; // 1GB
 double timeStep = 0.25;
 int cacheLineSize = 128;		  /* bytes per cacheline */
 int64_t cacheSize = 32 * 1024;  /* q6600 = 4MB share per die, or 2MB per core */
@@ -456,19 +456,23 @@ latency_thread (void *arg)
    if (posix_memalign((void **)&a, pageSize, maxmem) != 0) {
       printf ("Memory allocation failed\n");
       exit(-1);
+#ifdef DEBUG
    } else {
       printf ("Allocated %ld bytes or %ld INT64s succeeded.\n",maxmem,size);
+#endif
    }
 #endif
 	}
 	/* allocate the entire cache */
 	srand48 ((long int) getpid ());
 #ifdef DEBUG
-   printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
+   printf ("perCacheLine=%d cacheLineSize=%d size=%ld\n",perCacheLine, cacheLineSize, size);
 #endif
 
 	ret=initAr(a,size);
+#ifdef DEBUG
    printf("Initialized %ld cachelines\n",ret);
+#endif
 
    ret=shuffleAr(a,size,&visitOrder);
    if (ret) { printf ("shuffle failed\n"); } 
@@ -491,7 +495,7 @@ latency_thread (void *arg)
 #ifndef CNT                  // calculate cachelines if CNT is not defined
    ret=maxmem/cacheLineSize; // actually count each cacheline acces if CNT is defined
 #else
-   printf("Bvisited %ld cachelines\n",ret);
+   printf("visited %ld cachelines %lld per repeat\n",ret,ret/scale);
 #endif
 	if (usenuma)
 	{
@@ -550,10 +554,10 @@ printTimeAr ()
 void
 zero_bandwidth (struct idThreadParams id)
 {
-	int i, array_size, num_array;
-	array_size = maxMemory / sizeof (double);	/* in KB, start small */
+	int i, curMemory, num_array;
+	curMemory = maxMemory / sizeof (double);	/* in KB, start small */
 	num_array = 0;
-	while (array_size >= minMemory / sizeof (double))
+	while (curMemory >= minMemory / sizeof (double))
 	{
 		for (cur_threads = 0; cur_threads < id.maxThreads; cur_threads++)
 		{
@@ -562,7 +566,7 @@ zero_bandwidth (struct idThreadParams id)
 				bandwidthAr[cur_threads][num_array][i] = 0;
 			}
 		}
-		array_size = array_size * increaseArray;
+		curMemory = curMemory* increaseArray;
 		num_array++;
 	}
 }
@@ -643,7 +647,7 @@ latency_time (double *times, double *results, int64_t maxmem, int scale,
 	lat = 1.0e+9 * diff / (hops * cur_threads);
 	lat = lat / scale;
 	avgLat = 1.0e+9 * diff / hops / (int) scale;
-	printf (" diff=%6.5f lat = %f avgLat = %f hops=%"PRIu64"\n", diff, lat,
+	printf (" diff=%6.5f lat = %6.3f avgLat = %6.3f hops=%"PRIu64"\n", diff, lat,
 			  avgLat, hops);
 	results[0] = lat;
 	results[1] = avgLat;
@@ -918,7 +922,7 @@ main (int argc, char *argv[])
 	double diff;
 	double max, min;
 	FILE *fp;
-	int64_t i, j, array_size, num_array;
+	int64_t i, j, curMemory, num_array;
 	int ret = 0;
 	pthread_t reader[MAX_THREADS];
 /* debugging */
@@ -1007,7 +1011,6 @@ main (int argc, char *argv[])
 			break;
 		case 'M':
 			maxMemory = (int64_t) atoi (optarg) * 1024 * 1024;  
-//			maxMemory= 256*1024; // hack
 			break;
 		case 'p':
 			pageSize = atoi (optarg);
@@ -1052,7 +1055,7 @@ main (int argc, char *argv[])
 		}
 	}
 	perCacheLine = cacheLineSize / sizeof(int64_t);
-	cacheLinesPerPage = (pageSize)/sizeof(int64_t);
+	cacheLinesPerPage = (pageSize)/cacheLineSize;
 	if (logfile == NULL)
 	{
 		printf ("You must specify a log file with -f\n");
@@ -1083,13 +1086,13 @@ main (int argc, char *argv[])
 	while (cur_threads <= id.maxThreads)
 	{
 		printf ("*** threads=%ld\n", cur_threads);
-		array_size = maxMemory;	/* start large and shrink to keep malloc happy */
+		curMemory = maxMemory;	/* start large and shrink to keep malloc happy */
 		/* Insure that every array is an even multiple of the cacheline size */
 		diff = timeStep;
 		scale = REPEAT;
 		num_array = 0;
 
-		while (array_size >= minMemory)
+		while (curMemory >= minMemory)
 		{
 			scale = scale * (timeStep / diff);
 			if (scale<1) {
@@ -1106,7 +1109,7 @@ main (int argc, char *argv[])
 				tid[i].id = i;
 				tid[i].maxThreads= cur_threads;
 				/* maxmem = bytes per thread to use */
-				maxmem = array_size / cur_threads;
+				maxmem = curMemory / cur_threads;
 				if (band == 1)
 					ret =
 						pthread_create (&(reader[i]), NULL, stream_thread, &tid[i]);
@@ -1134,7 +1137,7 @@ main (int argc, char *argv[])
 			}
 
 			printf ("%ld Thread(s) size=%sB repeat=%s ", cur_threads,
-					  fToStringBin (array_size / 1024.0, result1),
+					  fToStringBin (curMemory / 1024.0, result1),
 					  fToStringDec ((float) scale, result2));
 			for (i = 0; i < BENCHMARKS; i++)
 			{
@@ -1163,11 +1166,13 @@ main (int argc, char *argv[])
 			bandwidthAr[logint (cur_threads)][num_array][0] = results[0];
 			bandwidthAr[logint (cur_threads)][num_array][1] = results[1];
 /*	      printf ("cur=%d index=%d\n", cur_threads, log[cur_threads]); */
-			printf ("\n");
-			array_size = array_size * increaseArray;
-			//* does not make sense to benchmark a page with less then 2 cachelines
-			array_size = array_size - array_size%((pageSize)/sizeof(int64_t));
-//			printf("Array_size=%ld pagesize=%ld\n",array_size,array_size%512);
+//			printf ("arraysize was %ld ",curMemory);
+			curMemory = curMemory * increaseArray;
+			//* keep curMemory a multiple of pageSize
+			curMemory = curMemory- curMemory%(pageSize);
+//			printf ("array size now %ld offset=%ld\n\n",
+//				curMemory,curMemory%(pageSize));
+//			printf("Array_size=%ld pagesize=%ld\n",curMemory,array_size%512);
 			num_array++;
 		}
 		cur_threads = cur_threads * 2;
