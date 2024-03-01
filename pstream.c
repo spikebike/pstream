@@ -352,6 +352,7 @@ initAr(int64_t *a,int64_t size)
    return(cnt);
 }  
 
+int
 shuffleAr(int64_t *a, int64_t size, int64_t **visitOrder)
 {
    int64_t base;
@@ -416,12 +417,10 @@ void *
 latency_thread (void *arg)
 {
 	struct idThreadParams *id = arg;
-	int64_t *a,*b;
+	int64_t *a,*visitOrder;
 	int64_t *aa = NULL;
-	int64_t x, y;
-	int64_t i, c, max =0;
 	int64_t size, len = 0;
-   int64_t base,hops;
+   int64_t hops,ret;
 
 #ifdef USEAFFINITY
 	if (affinity)
@@ -466,7 +465,6 @@ latency_thread (void *arg)
 	a = aa;
 	srand48 ((long int) getpid ());
    hops=pageSize/cacheLineSize; // 512 per x86-64 4k page
-	base=0;
    printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
 
 	ret=initAr(a,size);
