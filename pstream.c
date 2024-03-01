@@ -242,12 +242,13 @@ verifyAr(int64_t * a, int64_t size, int64_t hops)
 
 
 int
-followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
+followAr (int64_t * a, int64_t size, int64_t *visitOrder, int repeat )
 {
 	int64_t p = 0;
 	int64_t *b;
-	int i;
+	int i, followPages,pagesRead;
 	int64_t base;
+	
 #ifdef CNT
 	int64_t cnt=0;
 	int64_t pcnt;
@@ -255,10 +256,12 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 #ifdef CNT
 		cnt=0;
 #endif
+	followPages = size / (pageSize/sizeof(int64_t));
 	for (i = 0; i < repeat; i++)
 	{
-		base=0;
-		while (base<size) {
+		pagesRead=0;
+		while (pagesRead<followPages) {
+			base=visitOrder[pagesRead]*pageSize/sizeof(int64_t); 
 			b=&a[base];  // start pointer chasing at begin of page
 			p=b[0];
 //			printf("%p\n",(void *)&p[b]);
@@ -276,14 +279,15 @@ followAr (int64_t * a, int64_t size, int repeat, int64_t hops)
 #endif		
 //				printf("%p\n",(void *)&p[b]);
 			}
-			base=base+hops*cacheLineSize;  // fix 4k / 8 bytes = 512
+			pagesRead++;
 		}
 	}
 #ifdef CNT
-	printf ("cnt=%ld hops=%ld size=%ld repeat=%d\n", cnt, hops,size,repeat);
-#endif
-
+	printf ("cnt=%ld size=%ld repeat=%d\n", cnt, size,repeat);
+	return (cnt);
+#else
 	return (a[0]);
+#endif
 }
 
 
@@ -345,10 +349,9 @@ initAr(int64_t *a,int64_t size)
       b=&a[base];
       for (i = 0; i < (int64_t)(pageSize/sizeof(int64_t)); i = i + perCacheLine)
       {
-         b[i] = i;   /* assign each int the index of the next int */
+         b[i] = i; 
          cnt++;
       }
-//    b[i-cacheLineSize/sizeof(int64_t)]=0;
       base=base+pageSize/sizeof(int64_t);
    }
    return(cnt);
@@ -418,10 +421,8 @@ void *
 latency_thread (void *arg)
 {
 	struct idThreadParams *id = arg;
-	int64_t *a,*visitOrder;
-	int64_t *aa = NULL;
-	int64_t size, len = 0;
-   int64_t hops,ret;
+	int64_t *a=NULL,*visitOrder;
+	int64_t size,ret;
 
 #ifdef USEAFFINITY
 	if (affinity)
@@ -439,7 +440,6 @@ latency_thread (void *arg)
 	}
 	else
 	{
-		len = (size * sizeof (uint64_t) + 2 * cacheSize + 2 * cacheLineSize);
 #ifdef USEHUGE
 		len = (len + 2097151) & ~2097151;
 		a = mmap (0, len, PROT_READ | PROT_WRITE,
@@ -463,7 +463,6 @@ latency_thread (void *arg)
 	}
 	/* allocate the entire cache */
 	srand48 ((long int) getpid ());
-   hops=pageSize/cacheLineSize; // 512 per x86-64 4k page
 #ifdef DEBUG
    printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
 #endif
@@ -483,25 +482,29 @@ latency_thread (void *arg)
 #endif
 	sync_thread (id->id, label[0]);
 	timeAr[id->id][0] = second ();
-	followAr (a, size, scale, hops);
+	ret=followAr (a, size, visitOrder,scale);
 	timeAr[id->id][1] = second ();
 	sync_thread (id->id, label[1]);
 #if DEBUG
 	printf ("synced numa=%d diff=%f\n", usenuma,timeAr[id->id][1]-timeAr[id->id][0]);
 #endif
-/*	sync_thread (id, label[2]); */
+#ifndef CNT                  // calculate cachelines if CNT is not defined
+   ret=maxmem/cacheLineSize; // actually count each cacheline acces if CNT is defined
+#else
+   printf("Bvisited %ld cachelines\n",ret);
+#endif
 	if (usenuma)
 	{
 #ifdef USENUMA
-		numa_free (aa, size * sizeof (int64_t) + cacheSize);
+		numa_free (a, size * sizeof (int64_t) + cacheSize);
 #endif
 	}
 	else
 	{
 #ifdef USEHUGE
-		munmap (aa, len);
+		munmap (a, len);
 #else
-		free (aa);
+		free (a);
 #endif
 	}
 #if DEBUG
@@ -640,7 +643,7 @@ latency_time (double *times, double *results, int64_t maxmem, int scale,
 	lat = 1.0e+9 * diff / (hops * cur_threads);
 	lat = lat / scale;
 	avgLat = 1.0e+9 * diff / hops / (int) scale;
-	printf (" diff=%6.5f lat = %f avgLat = %f hops=%"PRIu64"", diff, lat,
+	printf (" diff=%6.5f lat = %f avgLat = %f hops=%"PRIu64"\n", diff, lat,
 			  avgLat, hops);
 	results[0] = lat;
 	results[1] = avgLat;
