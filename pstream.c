@@ -337,7 +337,9 @@ initAr(int64_t *a,int64_t size)
 
    base=0;
    cnt=0;
+#ifdef DEBUG
    printf ("cacheLinesPerPage=%d cacheLineSize=%d\n",cacheLinesPerPage,cacheLineSize);
+#endif
    while (base<size)
    {
       b=&a[base];
@@ -374,7 +376,6 @@ shuffleAr(int64_t *a, int64_t size, int64_t **visitOrder)
       }
       base=base+pageSize/sizeof(int64_t);
    }
-   printf ("Done with Shuffle\n");
    followPages = size / (pageSize/sizeof(int64_t));
    *visitOrder = (int64_t*)malloc(sizeof(int64_t)*followPages);
    if (!visitOrder) {
@@ -451,13 +452,13 @@ latency_thread (void *arg)
 		}
 
 
-#else
-		aa = (int64_t *) malloc (len);
-		if (!aa) 
-		{
-			printf ("failed alloc of %" PRId64 "\n",len);
-			exit(-1);
-		}
+#else  // default
+   if (posix_memalign((void **)&a, pageSize, maxmem) != 0) {
+      printf ("Memory allocation failed\n");
+      exit(-1);
+   } else {
+      printf ("Allocated %ld bytes or %ld INT64s succeeded.\n",maxmem,size);
+   }
 #endif
 	}
 	/* allocate the entire cache */
@@ -465,13 +466,19 @@ latency_thread (void *arg)
 	a = aa;
 	srand48 ((long int) getpid ());
    hops=pageSize/cacheLineSize; // 512 per x86-64 4k page
+#ifdef DEBUG
    printf ("perCacheLine=%d cacheLineSize=%d size=%ld hops=%ld\n",perCacheLine, cacheLineSize, size,hops);
+#endif
 
 	ret=initAr(a,size);
    printf("Initialized %ld cachelines\n",ret);
 
    ret=shuffleAr(a,size,&visitOrder);
-   if (!ret) { printf ("Shuffle succeded\n"); } else { printf ("shuffle failed\n"); }
+   if (ret) { printf ("shuffle failed\n"); } 
+#ifdef DEBUG
+	else 
+		{ printf ("Shuffle succeded\n"); }
+#endif
 	
 #ifdef DEBUG
 	printf ("starting pointer chasing\n");
@@ -481,8 +488,8 @@ latency_thread (void *arg)
 	followAr (a, size, scale, hops);
 	timeAr[id->id][1] = second ();
 	sync_thread (id->id, label[1]);
-//	printf ("synced numa=%d diff=%f\n", usenuma,timeAr[id->id][1]-timeAr[id->id][0]);
 #if DEBUG
+	printf ("synced numa=%d diff=%f\n", usenuma,timeAr[id->id][1]-timeAr[id->id][0]);
 #endif
 /*	sync_thread (id, label[2]); */
 	if (usenuma)
