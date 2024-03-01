@@ -554,10 +554,10 @@ printTimeAr ()
 void
 zero_bandwidth (struct idThreadParams id)
 {
-	int i, curMemory, num_array;
-	curMemory = maxMemory / sizeof (double);	/* in KB, start small */
+	int i, arraySize, num_array;
+	arraySize = maxMemory / sizeof (double);	/* in KB, start small */
 	num_array = 0;
-	while (curMemory >= minMemory / sizeof (double))
+	while (arraySize>= minMemory / sizeof (double))
 	{
 		for (cur_threads = 0; cur_threads < id.maxThreads; cur_threads++)
 		{
@@ -566,7 +566,7 @@ zero_bandwidth (struct idThreadParams id)
 				bandwidthAr[cur_threads][num_array][i] = 0;
 			}
 		}
-		curMemory = curMemory* increaseArray;
+		arraySize = arraySize* increaseArray;
 		num_array++;
 	}
 }
@@ -1169,7 +1169,7 @@ main (int argc, char *argv[])
 //			printf ("arraysize was %ld ",curMemory);
 			curMemory = curMemory * increaseArray;
 			//* keep curMemory a multiple of pageSize
-			curMemory = curMemory- curMemory%(pageSize);
+			curMemory = curMemory- curMemory%(pageSize*cur_threads);
 //			printf ("array size now %ld offset=%ld\n\n",
 //				curMemory,curMemory%(pageSize));
 //			printf("Array_size=%ld pagesize=%ld\n",curMemory,array_size%512);
