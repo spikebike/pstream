@@ -67,6 +67,7 @@ int usenuma = 0;
 int pageSize = 4096;
 int perCacheLine;
 int cacheLinesPerPage;
+int pageRandom=0;
 long int cur_threads;
 
 int64_t maxmem;
@@ -398,19 +399,22 @@ shuffleAr(int64_t *a, int64_t size, int64_t **visitOrder)
    {
       (*visitOrder)[i]=i;
    }
-#ifdef RANDOM
+	if (pageRandom) {
+#ifdef DEBUG
+		printf("R");
+#endif
    // Randomize it to prevent page N+1 prefection while accessing every cacheline of N
-   for (int64_t  i = followPages - 1; i > 0; i--) {
+		for (int64_t  i = followPages - 1; i > 0; i--) {
         // Pick a random index from 0 to i
-        int j = rand() % (i + 1);
+			int j = rand() % (i + 1);
 
         // Swap a[i] with a[j]
-        int temp = (*visitOrder)[i];
-        (*visitOrder)[i] = (*visitOrder)[j];
-        (*visitOrder)[j] = temp;
-   }
-   printf ("Pages randomized, ");
-#endif
+			int temp = (*visitOrder)[i];
+			(*visitOrder)[i] = (*visitOrder)[j];
+			(*visitOrder)[j] = temp;
+   	}
+//   printf ("Pages randomized, ");
+	}
    return(0);
 }
 
@@ -431,38 +435,12 @@ latency_thread (void *arg)
 	size = maxmem / sizeof (int64_t);  // number of int64s.
 	if (usenuma)
 	{
-#ifdef USENUMA
 		numa_run_on_node (id->id % id->maxThreads);
-		a =
-			numa_alloc_local (size * sizeof (int64_t) + 2 * cacheSize +
-									2 * cacheLineSize);
-#endif
 	}
-	else
-	{
-#ifdef USEHUGE
-		len = (len + 2097151) & ~2097151;
-		a = mmap (0, len, PROT_READ | PROT_WRITE,
-					  MAP_ANONYMOUS | MAP_PRIVATE | MAP_HUGETLB, -1, 0);
-		if (a == MAP_FAILED)
-		{
-			printf ("Warning memory allocation of %" PRIu64 " MB array failed\n",
-					  len/ (1024 * 1024));
-			exit (-1);
-		}
-
-
-#else  // default
    if (posix_memalign((void **)&a, pageSize, maxmem) != 0) {
       printf ("Memory allocation failed\n");
       exit(-1);
-#ifdef DEBUG
-   } else {
-      printf ("Allocated %ld bytes or %ld INT64s succeeded.\n",maxmem,size);
-#endif
    }
-#endif
-	}
 	/* allocate the entire cache */
 	srand48 ((long int) getpid ());
 #ifdef DEBUG
@@ -497,20 +475,12 @@ latency_thread (void *arg)
 #else
    printf("visited %ld cachelines %lld per repeat\n",ret,ret/scale);
 #endif
-	if (usenuma)
-	{
-#ifdef USENUMA
-		numa_free (a, size * sizeof (int64_t) + cacheSize);
-#endif
-	}
-	else
-	{
+
 #ifdef USEHUGE
-		munmap (a, len);
+	munmap (a, len);
 #else
-		free (a);
+	free (a);
 #endif
-	}
 #if DEBUG
 	printf ("freed %d\n", id->id);
 #endif
@@ -567,6 +537,7 @@ zero_bandwidth (struct idThreadParams id)
 			}
 		}
 		arraySize = arraySize* increaseArray;
+
 		num_array++;
 	}
 }
@@ -598,6 +569,11 @@ print_bandwidth (char *str, struct idThreadParams id)
 
 	while (array_size >= minMemory / sizeof (double))
 	{
+/* 		if (array_size > (524288/sizeof(int64_t))) { 
+				pageSize=4096;
+		} else {
+				pageSize=4096;
+		} */
 		fprintf (fp, "ar= %8.2f ", array_size / 128.0);
 		for (cur_threads = 0; cur_threads <= logint (id.maxThreads); cur_threads++)
 		{
@@ -608,6 +584,7 @@ print_bandwidth (char *str, struct idThreadParams id)
 		}
 		fprintf (fp, "\n");
 		array_size = array_size * increaseArray;
+		array_size = array_size - array_size%((pageSize/sizeof(int64_t))*id.maxThreads);
 		num_array++;
 	}
 	fclose (fp);
@@ -871,6 +848,7 @@ help (char *argv[],struct idThreadParams id)
 	printf ("  [--shared align arrays to be friendly to a shared cache\n");
 	printf ("  [-U turn on NUMA (if compiled in), default %d\n", usenuma);
 	printf ("  [-u turn off NUMA (if compiled in), default %d\n", usenuma);
+	printf ("  [-r randomize page order, default %d\n", pageRandom);
 	printf ("  [-z <set cacheline size in bytes>] default %d\n",
 			  cacheLineSize);
 }
@@ -951,7 +929,7 @@ main (int argc, char *argv[])
 	while (1)
 	{
    	int option_index = 0;
-		c= getopt_long (argc, argv, "AalbPUuc:f:M:m:i:n:p:r:s:t:T:z:v?h",long_options,&option_index);
+		c= getopt_long (argc, argv, "AalbPUurc:f:M:m:i:n:p:s:t:T:z:v?h",long_options,&option_index);
 		if (c == -1)
         break;
 		switch (c)
@@ -1018,6 +996,9 @@ main (int argc, char *argv[])
 		case 'i':
 			increaseArray = atof (optarg) / 100.0;
 			break;
+		case 'r':
+			pageRandom=1;
+			break;
 		case 's':
 			timeStep = atof (optarg);
 			break;
@@ -1074,7 +1055,7 @@ main (int argc, char *argv[])
 			  " cacheLineSize=%d\n", increaseArray, timeStep, cacheSize,
 			  cacheLineSize);
 	printf ("affinity=%d affinity_wide=%d shared=%d\n", affinity, affinity_wide,shared_cache);
-	printf ("usenuma=%d pageSize=%d\n", usenuma, pageSize);
+	printf ("usenuma=%d pageSize=%d pageRandom=%d\n", usenuma, pageSize,pageRandom);
  	fp = fopen (logfile, "w");
    if (fp == NULL) {
     printf("Error opening file: %s\n",logfile);
@@ -1094,6 +1075,12 @@ main (int argc, char *argv[])
 
 		while (curMemory >= minMemory)
 		{
+/*			if (curMemory > 524288) { 
+				pageSize=4096;
+			} else {
+				pageSize=4096;
+			} */
+		
 			scale = scale * (timeStep / diff);
 			if (scale<1) {
 				scale=1;
@@ -1169,7 +1156,7 @@ main (int argc, char *argv[])
 //			printf ("arraysize was %ld ",curMemory);
 			curMemory = curMemory * increaseArray;
 			//* keep curMemory a multiple of pageSize
-			curMemory = curMemory- curMemory%(pageSize*cur_threads);
+			curMemory = curMemory- curMemory%(pageSize*id.maxThreads );
 //			printf ("array size now %ld offset=%ld\n\n",
 //				curMemory,curMemory%(pageSize));
 //			printf("Array_size=%ld pagesize=%ld\n",curMemory,array_size%512);

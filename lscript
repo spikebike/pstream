@@ -1,11 +1,11 @@
 #set terminal gif
 #set yrange [0.125:180]
 #set yrange [.015625:]
-set xrange [32:]
+#set xrange [32:]
 set logscale x 2
 set logscale y
 set ytics (.03125,0.0625,0.125,0.25,0.5, 1,2,4,8,16, 32,64,128,256,"512M" 512,"1G" 1024,"2G" 2048,"4G" 4096,"8G" 8192,"16G" 16384,"32G" 32768,"64G" 65536,"128G" 131072,"256G" 262144,"512G" 524288)
-set xtics (1,2,4,8,16,"32k" 32,"64k" 64,"128k" 128,"256k" 256,"512k" 512,"1M" 1024,"2M" 2048,"4M" 4096,"8M" 8192,"16M" 16384,"32M" 32768,"64M" 65536,"128M" 131072,"256M" 262144,"512M" 524288)
+set xtics (1,2,4,8,16,"32k" 32,"64k" 64,"128k" 128,"256k" 256,"512k" 512,"1M" 1024,"2M" 2048,"4M" 4096,"8M" 8192,"16M" 16384,"32M" 32768,"64M" 65536,"128M" 131072,"256M" 262144,"512M" 524288, "1G" 1048576, "2G" 2097152)
 set title "Latency and Parallelism in the Memory Hierarchy" font "verdana,16"; 
 set xlabel "Array size in bytes (randomly accessed)" font "verdanab,12"
 #set ylabel "random cacheline every (in ns)" font "verdanab,12"
@@ -21,8 +21,8 @@ replot 'data' using 2:5 title "2-thread" with lines lw 2
 replot 'data' using 2:7 title "4-thread" with lines lw 2
 replot 'data' using 2:9 title "8-thread" with lines lw 2
 replot 'data' using 2:11 title "16-thread" with lines lw 2
-replot 'data' using 2:13 title "32-thread" with lines lw 2 lt rgb "violet"
-replot 'data' using 2:15 title "64-thread" with lines lw 2
+#replot 'data' using 2:13 title "32-thread" with lines lw 2 
+#replot 'data' using 2:15 title "64-thread" with lines lw 2
 #replot 'data2' using 2:13 title "61-thread" with lines lw 2
 #replot 'data2' using 2:15 title "122-thread" with lines lw 2
 #replot 'data2' using 2:17 title "244-thread" with lines lw 2
